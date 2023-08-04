@@ -14,18 +14,11 @@
  * limitations under the License.
  */
 
-package ru.razornd.twitch.followers
+CREATE TABLE follower_scan
+(
+    streamer_id varchar(50) NOT NULL,
+    scan_number integer     NOT NULL,
+    created_at  timestamp   NOT NULL,
 
-import kotlinx.coroutines.flow.Flow
-import org.springframework.data.domain.Pageable
-import org.springframework.data.repository.Repository
-
-@Suppress("SpringDataRepositoryMethodReturnTypeInspection")
-interface ScanRepository : Repository<FollowerScan, Any> {
-
-    fun findByStreamerIdOrderByScanNumberDesc(
-        streamerId: String,
-        pageable: Pageable = Pageable.unpaged()
-    ): Flow<FollowerScan>
-
-}
+    PRIMARY KEY (streamer_id, scan_number)
+);
