@@ -1,0 +1,10 @@
+services:
+  database:
+    image: postgres:15-alpine
+    ports:
+      - '5432'
+    environment:
+      POSTGRES_DB: twitch
+      POSTGRES_PASSWORD: fftGixPpLAxDGVDmyb4P
+    volumes:
+      - ./.docker/postgres/:/docker-entrypoint-initdb.d/migrations/

@@ -1,0 +1,17 @@
+spring:
+  application:
+    name: twitch-followers-scanner
+  security:
+    oauth2:
+      client:
+        provider:
+          twitch:
+            issuer-uri: https://id.twitch.tv/oauth2
+        registration:
+          twitch:
+            provider: twitch
+            client-id: ${twitch.client-id}
+            client-secret: ${twitch.client-secret}
+            scope:
+              - openid
+              - user:read:follows
