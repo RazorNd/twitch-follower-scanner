@@ -14,22 +14,15 @@
  * limitations under the License.
  */
 
-package ru.razornd.twitch.followers
+package ru.razornd.twitch.followers.service
 
-import kotlinx.coroutines.flow.Flow
-import org.springframework.data.domain.Pageable
-import org.springframework.data.repository.Repository
+import org.springframework.stereotype.Component
+import ru.razornd.twitch.followers.FollowerScan
 
-@Suppress("SpringDataRepositoryMethodReturnTypeInspection")
-interface ScanRepository : Repository<FollowerScan, Any> {
-
-    fun findByStreamerIdOrderByScanNumberDesc(
-        streamerId: String,
-        pageable: Pageable = Pageable.unpaged()
-    ): Flow<FollowerScan>
-
-    suspend fun findTopByStreamerIdOrderByScanNumberDesc(streamerId: String): FollowerScan?
-
-    suspend fun save(scan: FollowerScan): FollowerScan
+@Component
+class FollowerScannerOperator {
+    suspend fun scanAndSave(scan: FollowerScan) {
+        TODO("Not yet implemented")
+    }
 
 }

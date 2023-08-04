@@ -17,6 +17,7 @@
 package ru.razornd.twitch.followers.service
 
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
@@ -24,14 +25,24 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import ru.razornd.twitch.followers.FollowerScan
 import ru.razornd.twitch.followers.ScanRepository
+import java.time.Clock
 import java.time.Instant
+import java.time.ZoneId
 
 
 class ScanServiceTest {
 
-    private val repository = mockk<ScanRepository>()
+    private val repository = mockk<ScanRepository> {
+        coEvery { save(any()) } answers { firstArg() }
+    }
 
-    private val service = ScanService(repository)
+    private val operator = mockk<FollowerScannerOperator>(relaxUnitFun = true)
+
+    private val currentTime = Instant.parse("2023-08-04T22:09:00Z")
+
+    private val service = ScanService(repository, operator).apply {
+        clock = Clock.fixed(currentTime, ZoneId.systemDefault())
+    }
 
     @Test
     fun `should fetch scan from repository`() {
@@ -43,5 +54,22 @@ class ScanServiceTest {
         val scans = runBlocking { service.findScans(streamerId) }
 
         assertThat(scans).containsOnly(expected)
+    }
+
+    @Test
+    fun `should create scan entity and start scan operation`() {
+        val streamerId = "23002802"
+        val expected = FollowerScan(streamerId, 6867, currentTime)
+
+        coEvery { repository.findTopByStreamerIdOrderByScanNumberDesc(streamerId) } returns FollowerScan(
+            streamerId,
+            6866,
+            Instant.parse("2023-08-04T22:02:00Z")
+        )
+
+        runBlocking { service.startScan(streamerId) }
+
+        coVerify { repository.save(expected) }
+        coVerify { operator.scanAndSave(expected) }
     }
 }

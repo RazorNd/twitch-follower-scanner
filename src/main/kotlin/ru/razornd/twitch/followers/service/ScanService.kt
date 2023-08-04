@@ -18,17 +18,34 @@ package ru.razornd.twitch.followers.service
 
 import kotlinx.coroutines.flow.toList
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Isolation
+import org.springframework.transaction.annotation.Transactional
 import ru.razornd.twitch.followers.FollowerScan
 import ru.razornd.twitch.followers.ScanRepository
+import java.time.Clock
+import java.time.Instant
 
 @Service
-class ScanService(private val scanRepository: ScanRepository) {
-    suspend fun findScans(streamerId: String): Collection<FollowerScan> {
-        return scanRepository.findByStreamerIdOrderByScanNumberDesc(streamerId).toList()
+open class ScanService(private val repository: ScanRepository, private val operator: FollowerScannerOperator) {
+
+    var clock: Clock = Clock.systemDefaultZone()
+
+    @Transactional(readOnly = true)
+    open suspend fun findScans(streamerId: String): Collection<FollowerScan> {
+        return repository.findByStreamerIdOrderByScanNumberDesc(streamerId).toList()
     }
 
-    suspend fun startScan(streamerId: String): FollowerScan {
-        TODO("Not yet implemented")
+    @Transactional(isolation = Isolation.REPEATABLE_READ)
+    open suspend fun startScan(streamerId: String): FollowerScan {
+        val scan = repository.findTopByStreamerIdOrderByScanNumberDesc(streamerId)?.nextScan()
+            ?: FollowerScan(streamerId)
+
+        operator.scanAndSave(scan)
+
+        return scan.let { repository.save(it) }
     }
 
+    private fun FollowerScan(streamerId: String) = FollowerScan(streamerId, 1, Instant.now(clock))
+
+    private fun FollowerScan.nextScan() = copy(scanNumber = scanNumber + 1, createdAt = Instant.now(clock))
 }
