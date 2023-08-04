@@ -14,21 +14,14 @@
  * limitations under the License.
  */
 
-package ru.razornd.twitch.followers.service
+package ru.razornd.twitch.followers
 
-import kotlinx.coroutines.flow.toList
-import org.springframework.stereotype.Service
-import ru.razornd.twitch.followers.FollowerScan
-import ru.razornd.twitch.followers.ScanRepository
+import kotlinx.coroutines.flow.Flow
+import org.springframework.data.repository.Repository
 
-@Service
-class ScanService(private val scanRepository: ScanRepository) {
-    suspend fun findScans(streamerId: String): Collection<FollowerScan> {
-        return scanRepository.findByStreamerIdOrderByScanNumberDesc(streamerId).toList()
-    }
+@Suppress("SpringDataRepositoryMethodReturnTypeInspection")
+interface ScanRepository : Repository<FollowerScan, Any> {
 
-    suspend fun startScan(streamerId: String): FollowerScan {
-        TODO("Not yet implemented")
-    }
+    fun findByStreamerIdOrderByScanNumberDesc(streamerId: String): Flow<FollowerScan>
 
 }
