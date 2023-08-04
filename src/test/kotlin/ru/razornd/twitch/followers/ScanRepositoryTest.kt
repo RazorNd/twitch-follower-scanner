@@ -28,6 +28,7 @@ import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import org.testcontainers.utility.DockerImageName
+import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset.UTC
 
@@ -63,6 +64,13 @@ class ScanRepositoryTest {
             .isEqualTo((3..5).reversed().map {
                 FollowerScan(streamerId, it, LocalDate.of(2023, 8, it).atTime(18, 59).toInstant(UTC))
             })
+    }
+
+    @Test
+    fun `should save entity`() {
+        val scan = runBlocking { repository.save(FollowerScan("2252", 1, Instant.now())) }
+
+        assertThat(scan).hasNoNullFieldsOrProperties()
     }
 
     companion object {
