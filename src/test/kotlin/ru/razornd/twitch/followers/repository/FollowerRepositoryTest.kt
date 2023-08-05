@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-package ru.razornd.twitch.followers
+package ru.razornd.twitch.followers.repository
 
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
-import org.assertj.core.api.Assertions.assertThat
+import org.assertj.db.api.Assertions
 import org.assertj.db.type.Changes
 import org.assertj.db.type.Source
 import org.assertj.db.type.Table
@@ -30,9 +30,10 @@ import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import org.testcontainers.utility.DockerImageName
+import ru.razornd.twitch.followers.Follower
+import ru.razornd.twitch.followers.FollowerRepository
 import java.sql.Timestamp
 import java.time.Instant
-import org.assertj.db.api.Assertions.assertThat as assertDb
 
 @DataR2dbcTest(properties = ["spring.sql.init.mode=always", "logging.level.io.r2dbc.postgresql.QUERY=debug"])
 @Testcontainers(disabledWithoutDocker = true)
@@ -58,7 +59,7 @@ class FollowerRepositoryTest {
         runBlocking { repository.insertOrUpdate(follower) }
         changes.setEndPointNow()
 
-        assertDb(changes)
+        Assertions.assertThat(changes)
             .hasNumberOfChanges(1)
             .change().isModification
             .hasNumberOfModifiedColumns(1)
@@ -81,7 +82,7 @@ class FollowerRepositoryTest {
         runBlocking { repository.insertOrUpdate(follower) }
         changes.setEndPointNow()
 
-        assertDb(changes)
+        Assertions.assertThat(changes)
             .hasNumberOfChanges(1)
             .change().isCreation
             .rowAtEndPoint()
@@ -98,7 +99,7 @@ class FollowerRepositoryTest {
             repository.findByStreamerIdAndScanNumber("913613", 1).toList()
         }
 
-        assertThat(actual)
+        org.assertj.core.api.Assertions.assertThat(actual)
             .containsOnly(
                 Follower("913613", 1, "10035", "joyce.gusikowski", Instant.parse("2022-08-31T11:27:48.222Z")),
                 Follower("913613", 1, "42480", "timmy.gusikowski", Instant.parse("2022-08-11T05:44:19.693Z")),
@@ -112,7 +113,7 @@ class FollowerRepositoryTest {
             repository.findByStreamerIdAndScanNumberLessThan("913613", 1).toList()
         }
 
-        assertThat(actual)
+        org.assertj.core.api.Assertions.assertThat(actual)
             .containsOnly(
                 Follower("913613", 0, "08297", "leslee.white", Instant.parse("2023-06-09T21:23:09.553Z")),
                 Follower("913613", 0, "21660", "marline.leannon", Instant.parse("2023-06-08T21:02:23.734Z")),

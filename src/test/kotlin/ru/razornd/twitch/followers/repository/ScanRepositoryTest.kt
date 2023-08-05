@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-package ru.razornd.twitch.followers
+package ru.razornd.twitch.followers.repository
 
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
-import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions
 import org.assertj.db.type.Changes
 import org.assertj.db.type.Source
 import org.assertj.db.type.Table
@@ -31,11 +31,12 @@ import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import org.testcontainers.utility.DockerImageName
+import ru.razornd.twitch.followers.FollowerScan
+import ru.razornd.twitch.followers.ScanRepository
 import java.sql.Timestamp
 import java.time.Instant
 import java.time.LocalDate
-import java.time.ZoneOffset.UTC
-import org.assertj.db.api.Assertions.assertThat as assertDb
+import java.time.ZoneOffset
 
 @DataR2dbcTest(properties = ["spring.sql.init.mode=always"])
 @Testcontainers(disabledWithoutDocker = true)
@@ -53,10 +54,10 @@ class ScanRepositoryTest {
         val streamerId = "685499"
         val scans = runBlocking { repository.findByStreamerIdOrderByScanNumberDesc(streamerId).toList() }
 
-        assertThat(scans)
+        Assertions.assertThat(scans)
             .usingRecursiveComparison()
             .isEqualTo((1..5).reversed().map {
-                FollowerScan(streamerId, it, LocalDate.of(2023, 8, it).atTime(18, 59).toInstant(UTC))
+                FollowerScan(streamerId, it, LocalDate.of(2023, 8, it).atTime(18, 59).toInstant(ZoneOffset.UTC))
             })
     }
 
@@ -68,10 +69,10 @@ class ScanRepositoryTest {
             repository.findByStreamerIdOrderByScanNumberDesc(streamerId, Pageable.ofSize(3)).toList()
         }
 
-        assertThat(scans)
+        Assertions.assertThat(scans)
             .usingRecursiveComparison()
             .isEqualTo((3..5).reversed().map {
-                FollowerScan(streamerId, it, LocalDate.of(2023, 8, it).atTime(18, 59).toInstant(UTC))
+                FollowerScan(streamerId, it, LocalDate.of(2023, 8, it).atTime(18, 59).toInstant(ZoneOffset.UTC))
             })
     }
 
@@ -80,11 +81,11 @@ class ScanRepositoryTest {
         val scan = FollowerScan("2252", 1, Instant.now())
 
         changes.setStartPointNow()
-        assertThat(runBlocking { repository.save(scan) }).hasNoNullFieldsOrProperties()
+        Assertions.assertThat(runBlocking { repository.save(scan) }).hasNoNullFieldsOrProperties()
         changes.setEndPointNow()
 
 
-        assertDb(changes)
+        org.assertj.db.api.Assertions.assertThat(changes)
             .hasNumberOfChanges(1)
             .change().isCreation
             .rowAtEndPoint()
