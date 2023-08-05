@@ -16,13 +16,71 @@
 
 package ru.razornd.twitch.followers.service
 
+import com.fasterxml.jackson.databind.PropertyNamingStrategies.SnakeCaseStrategy
+import com.fasterxml.jackson.databind.annotation.JsonNaming
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import org.springframework.stereotype.Component
+import org.springframework.web.reactive.function.client.WebClient
+import org.springframework.web.reactive.function.client.awaitBody
+import org.springframework.web.util.UriBuilder
+import ru.razornd.twitch.followers.Follower
+import ru.razornd.twitch.followers.FollowerRepository
 import ru.razornd.twitch.followers.FollowerScan
+import ru.razornd.twitch.followers.configuration.TwitchClient
+import java.time.Instant
+
+private const val pageSize = 100
 
 @Component
-class FollowerScannerOperator {
+class FollowerScannerOperator(
+    @TwitchClient private val webClient: WebClient,
+    private val repository: FollowerRepository
+) {
+
     suspend fun scanAndSave(scan: FollowerScan) {
-        TODO("Not yet implemented")
+        fetchFollowers(scan).collect { repository.insertOrUpdate(it.toModel(scan)) }
     }
 
+    private fun fetchFollowers(scan: FollowerScan): Flow<FollowerDto> = flow {
+        var cursor: String? = null
+
+        do {
+            val response = webClient.get()
+                .uri {
+                    it.path("/channels/followers")
+                        .queryParam("broadcaster_id", scan.streamerId)
+                        .queryParam("first", pageSize)
+                        .queryParamIfPresent("after", cursor)
+                        .build()
+                }
+                .retrieve()
+                .awaitBody<PagedResponse<FollowerDto>>()
+
+            response.data.forEach { emit(it) }
+            cursor = response.pagination.cursor
+        } while (cursor != null)
+    }
+
+    private fun FollowerDto.toModel(scan: FollowerScan): Follower = Follower(
+        scan.streamerId,
+        scan.scanNumber,
+        userId,
+        userName,
+        followedAt
+    )
 }
+
+private fun UriBuilder.queryParamIfPresent(name: String, value: Any?) = value?.let { queryParam(name, it) } ?: this
+
+@JsonNaming(SnakeCaseStrategy::class)
+private data class FollowerDto(
+    val userId: String,
+    val userName: String,
+    val userLogin: String,
+    val followedAt: Instant
+)
+
+private data class PagedResponse<T>(val total: Int, val data: Collection<T>, val pagination: Pagination)
+
+private data class Pagination(val cursor: String?)

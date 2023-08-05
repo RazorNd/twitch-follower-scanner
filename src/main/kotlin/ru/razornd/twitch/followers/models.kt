@@ -23,3 +23,11 @@ data class FollowerScan(
     val scanNumber: Int,
     val createdAt: Instant
 )
+
+data class Follower(
+    val streamerId: String,
+    val scanNumber: Int,
+    val userId: String,
+    val userName: String,
+    val followedAt: Instant
+)

@@ -20,9 +20,7 @@ import kotlinx.coroutines.flow.Flow
 import org.springframework.data.domain.Pageable
 import org.springframework.data.repository.Repository
 
-@Suppress("SpringDataRepositoryMethodReturnTypeInspection")
 interface ScanRepository : Repository<FollowerScan, Any> {
-
     fun findByStreamerIdOrderByScanNumberDesc(
         streamerId: String,
         pageable: Pageable = Pageable.unpaged()
@@ -31,5 +29,16 @@ interface ScanRepository : Repository<FollowerScan, Any> {
     suspend fun findTopByStreamerIdOrderByScanNumberDesc(streamerId: String): FollowerScan?
 
     suspend fun save(scan: FollowerScan): FollowerScan
+
+}
+
+interface FollowerRepository : Repository<Follower, Any>, FollowerUpsert {
+    fun findByStreamerIdAndScanNumber(streamerId: String, scanNumber: Int): Flow<Follower>
+
+}
+
+interface FollowerUpsert {
+
+    suspend fun insertOrUpdate(follower: Follower)
 
 }
