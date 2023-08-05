@@ -14,10 +14,16 @@
  * limitations under the License.
  */
 
+@file:Suppress("SpringDataRepositoryMethodReturnTypeInspection")
+
 package ru.razornd.twitch.followers
 
 import kotlinx.coroutines.flow.Flow
 import org.springframework.data.domain.Pageable
+import org.springframework.data.r2dbc.core.*
+import org.springframework.data.relational.core.query.Criteria
+import org.springframework.data.relational.core.query.Query
+import org.springframework.data.relational.core.query.Update
 import org.springframework.data.repository.Repository
 
 interface ScanRepository : Repository<FollowerScan, Any> {
@@ -35,10 +41,34 @@ interface ScanRepository : Repository<FollowerScan, Any> {
 interface FollowerRepository : Repository<Follower, Any>, FollowerUpsert {
     fun findByStreamerIdAndScanNumber(streamerId: String, scanNumber: Int): Flow<Follower>
 
+    fun findByStreamerIdAndScanNumberLessThan(streamerId: String, scanNumber: Int): Flow<Follower>
+
 }
 
 interface FollowerUpsert {
 
     suspend fun insertOrUpdate(follower: Follower)
+
+}
+
+@Suppress("unused")
+class FollowerUpsertImpl(private val operations: FluentR2dbcOperations) : FollowerUpsert {
+    override suspend fun insertOrUpdate(follower: Follower) {
+        val query = Query.query(
+            Criteria.where("streamer_id").`is`(follower.streamerId).and(Criteria.where("user_id").`is`(follower.userId))
+        )
+
+        val exists = operations.select<Follower>()
+            .matching(query)
+            .awaitExists()
+
+        if (exists) {
+            operations.update<Follower>()
+                .matching(query)
+                .applyAndAwait(Update.update("scan_number", follower.scanNumber))
+        } else {
+            operations.insert<Follower>().usingAndAwait(follower)
+        }
+    }
 
 }

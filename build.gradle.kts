@@ -23,6 +23,7 @@ repositories {
 }
 
 extra["springmockk"] = "4.0.2"
+extra["assertj-db"] = "2.0.2"
 
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-webflux")
@@ -40,6 +41,8 @@ dependencies {
     testImplementation("org.springframework.security:spring-security-test")
     testImplementation("io.projectreactor:reactor-test")
     testImplementation("com.ninja-squad:springmockk:${property("springmockk")}")
+    testImplementation("org.assertj:assertj-db:${property("assertj-db")}")
+    testImplementation("org.postgresql:postgresql")
     testImplementation("com.squareup.okhttp3:mockwebserver")
     testImplementation("org.testcontainers:junit-jupiter")
     testImplementation("org.testcontainers:postgresql")
