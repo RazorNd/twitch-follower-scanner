@@ -19,6 +19,9 @@ package ru.razornd.twitch.followers
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.db.type.Changes
+import org.assertj.db.type.Source
+import org.assertj.db.type.Table
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.data.r2dbc.DataR2dbcTest
@@ -28,9 +31,11 @@ import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import org.testcontainers.utility.DockerImageName
+import java.sql.Timestamp
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset.UTC
+import org.assertj.db.api.Assertions.assertThat as assertDb
 
 @DataR2dbcTest(properties = ["spring.sql.init.mode=always"])
 @Testcontainers(disabledWithoutDocker = true)
@@ -38,6 +43,10 @@ class ScanRepositoryTest {
 
     @Autowired
     lateinit var repository: ScanRepository
+
+    private val table = Table(Source(postgres.jdbcUrl, postgres.username, postgres.password), "follower_scan")
+
+    private val changes = Changes(table)
 
     @Test
     fun `should find scan for streamer`() {
@@ -68,9 +77,20 @@ class ScanRepositoryTest {
 
     @Test
     fun `should save entity`() {
-        val scan = runBlocking { repository.save(FollowerScan("2252", 1, Instant.now())) }
+        val scan = FollowerScan("2252", 1, Instant.now())
 
-        assertThat(scan).hasNoNullFieldsOrProperties()
+        changes.setStartPointNow()
+        assertThat(runBlocking { repository.save(scan) }).hasNoNullFieldsOrProperties()
+        changes.setEndPointNow()
+
+
+        assertDb(changes)
+            .hasNumberOfChanges(1)
+            .change().isCreation
+            .rowAtEndPoint()
+            .value("streamer_id").isEqualTo(scan.streamerId)
+            .value("scan_number").isEqualTo(scan.scanNumber)
+            .value("created_at").isEqualTo(Timestamp.from(scan.createdAt))
     }
 
     companion object {
