@@ -21,35 +21,43 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.junit5.MockKExtension
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.CsvSource
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
 import org.springframework.context.annotation.Import
+import org.springframework.http.HttpMethod
 import org.springframework.http.MediaType
 import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.csrf
+import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockOidcLogin
 import org.springframework.test.web.reactive.server.WebTestClient
 import ru.razornd.twitch.followers.FollowerScan
 import ru.razornd.twitch.followers.configuration.SecurityConfiguration
 import ru.razornd.twitch.followers.service.ScanService
 import java.time.Instant
 
-@WebFluxTest(controllers = [ScanController::class])
+@WebFluxTest(controllers = [ScanController::class], properties = ["logging.level.org.springframework.security.web.server=debug"])
 @Import(SecurityConfiguration::class)
 @MockKExtension.CheckUnnecessaryStub
 class ScanControllerTest(@Autowired val webClient: WebTestClient) {
 
-    @MockkBean
+    @MockkBean(relaxed = true)
     lateinit var scanService: ScanService
 
     @Test
     fun `should return list of scans`() {
-        coEvery { scanService.findScans(streamerId = any()) } returns listOf(
-            FollowerScan("currentStreamer()", 1, Instant.parse("2023-04-12T03:29:29Z")),
-            FollowerScan("currentStreamer()", 2, Instant.parse("2023-04-13T01:22:21Z")),
-            FollowerScan("currentStreamer()", 3, Instant.parse("2023-04-14T21:30:48Z")),
-            FollowerScan("currentStreamer()", 4, Instant.parse("2023-04-15T22:22:24Z")),
-        )
+        val streamerId = "787101"
+        coEvery { scanService.findScans(streamerId = any()) } answers {
+            listOf(
+                FollowerScan(firstArg(), 1, Instant.parse("2023-04-12T03:29:29Z")),
+                FollowerScan(firstArg(), 2, Instant.parse("2023-04-13T01:22:21Z")),
+                FollowerScan(firstArg(), 3, Instant.parse("2023-04-14T21:30:48Z")),
+                FollowerScan(firstArg(), 4, Instant.parse("2023-04-15T22:22:24Z")),
+            )
+        }
 
-        webClient.get().uri("/api/scans")
+        webClient.mutateWith(mockOidcLogin().idToken { it.subject(streamerId) })
+            .get().uri("/api/scans")
             .accept(MediaType.APPLICATION_JSON)
             .exchange()
             .expectStatus().isOk
@@ -57,22 +65,22 @@ class ScanControllerTest(@Autowired val webClient: WebTestClient) {
                 """
                 [
                   {
-                    "streamerId": "currentStreamer()",
+                    "streamerId": "$streamerId",
                     "scanNumber": 1,
                     "createdAt": "2023-04-12T03:29:29Z"
                   },
                   {
-                    "streamerId": "currentStreamer()",
+                    "streamerId": "$streamerId",
                     "scanNumber": 2,
                     "createdAt": "2023-04-13T01:22:21Z"
                   },
                   {
-                    "streamerId": "currentStreamer()",
+                    "streamerId": "$streamerId",
                     "scanNumber": 3,
                     "createdAt": "2023-04-14T21:30:48Z"
                   },
                   {
-                    "streamerId": "currentStreamer()",
+                    "streamerId": "$streamerId",
                     "scanNumber": 4,
                     "createdAt": "2023-04-15T22:22:24Z"
                   }
@@ -80,18 +88,22 @@ class ScanControllerTest(@Autowired val webClient: WebTestClient) {
             """.trimIndent()
             )
 
-        coVerify { scanService.findScans(streamerId = "currentStreamer()") }
+        coVerify { scanService.findScans(streamerId) }
     }
 
     @Test
     fun `should start new scan`() {
-        coEvery { scanService.startScan(streamerId = "currentStreamer()") } returns FollowerScan(
-            "currentStreamer()",
-            966,
-            Instant.parse("2023-08-04T16:27:00Z")
-        )
+        val streamerId = "686606"
+        coEvery { scanService.startScan(any()) } answers {
+            FollowerScan(
+                firstArg(),
+                966,
+                Instant.parse("2023-08-04T16:27:00Z")
+            )
+        }
 
         webClient.mutateWith(csrf())
+            .mutateWith(mockOidcLogin().idToken { it.subject(streamerId) })
             .post()
             .uri("/api/scans")
             .accept(MediaType.APPLICATION_JSON)
@@ -100,11 +112,25 @@ class ScanControllerTest(@Autowired val webClient: WebTestClient) {
             .expectBody().json(
                 """
                 {
-                  "streamerId": "currentStreamer()",
+                  "streamerId": "$streamerId",
                   "scanNumber": 966,
                   "createdAt": "2023-08-04T16:27:00Z"
                 }
             """.trimIndent()
             )
+    }
+
+    @ParameterizedTest
+    @CsvSource(
+        "GET, /api/scans",
+        "POST, /api/scans"
+    )
+    fun `unauthenticated request should return 401`(method: String, uri: String) {
+        webClient.mutateWith(csrf())
+            .method(HttpMethod.valueOf(method))
+            .uri(uri)
+            .accept(MediaType.APPLICATION_JSON)
+            .exchange()
+            .expectStatus().isUnauthorized
     }
 }

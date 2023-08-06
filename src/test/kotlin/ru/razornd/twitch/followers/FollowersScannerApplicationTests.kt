@@ -16,8 +16,11 @@
 
 package ru.razornd.twitch.followers
 
+import kotlinx.coroutines.reactor.awaitSingle
+import kotlinx.coroutines.runBlocking
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
+import org.assertj.core.api.Assertions.assertThat
 import org.assertj.db.type.Changes
 import org.assertj.db.type.Source
 import org.assertj.db.type.Table
@@ -29,13 +32,24 @@ import org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDO
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
+import org.springframework.security.core.context.SecurityContextImpl
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken
+import org.springframework.security.oauth2.core.oidc.IdTokenClaimNames
+import org.springframework.security.oauth2.core.oidc.OidcIdToken
+import org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser
+import org.springframework.security.oauth2.core.user.OAuth2User
+import org.springframework.security.web.server.context.WebSessionServerSecurityContextRepository.DEFAULT_SPRING_SECURITY_CONTEXT_ATTR_NAME
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
 import org.springframework.test.web.reactive.server.WebTestClient
+import org.springframework.web.server.WebSession
+import org.springframework.web.server.session.DefaultWebSessionManager
+import org.springframework.web.server.session.WebSessionManager
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import org.testcontainers.utility.DockerImageName
+import java.time.Instant
 import org.assertj.db.api.Assertions.assertThat as assertDb
 
 private const val XSRF = "6c436860-17b5-4e07-987e-b7bb2eef159b"
@@ -47,13 +61,28 @@ private const val SALT_XSRF =
 @Testcontainers(disabledWithoutDocker = true)
 class FollowersScannerApplicationTests {
 
-
     private val followerTable = Table(Source(postgres.jdbcUrl, postgres.username, postgres.password), "follower")
 
     private val followersChanges = Changes(followerTable)
 
+    @Autowired
+    lateinit var sessionManager: WebSessionManager
+
     @Test
     fun `scan followers`(@Autowired client: WebTestClient) {
+        val streamerId = "3096988"
+        val session = createOAuthSession(
+            DefaultOidcUser(
+                listOf(),
+                OidcIdToken(
+                    "token",
+                    Instant.parse("2023-08-06T19:49:00Z"),
+                    Instant.parse("2023-08-06T19:50:00Z"),
+                    mapOf(IdTokenClaimNames.SUB to streamerId)
+                )
+            )
+        )
+
         server.enqueue(
             MockResponse()
                 .setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
@@ -79,16 +108,34 @@ class FollowersScannerApplicationTests {
         client.post()
             .uri("/api/scans")
             .cookie("XSRF-TOKEN", XSRF)
+            .cookie("SESSION", session.id)
             .header("X-XSRF-TOKEN", SALT_XSRF)
             .exchange()
             .expectStatus().isCreated
         followersChanges.setEndPointNow()
+
+        assertThat(server.takeRequest().requestUrl)
+            .describedAs("Request to twitch")
+            .extracting({ it?.encodedPath }, { it?.queryParameter("broadcaster_id") })
+            .containsExactly("/helix/channels/followers", streamerId)
 
         assertDb(followersChanges)
             .hasNumberOfChanges(1)
             .change().isCreation
             .rowAtEndPoint()
             .value("streamer_id")
+    }
+
+    private fun createOAuthSession(user: OAuth2User): WebSession = createWebSession { session ->
+        val authenticationToken = OAuth2AuthenticationToken(user, listOf(), "twitch")
+        session.attributes[DEFAULT_SPRING_SECURITY_CONTEXT_ATTR_NAME] = SecurityContextImpl(authenticationToken)
+    }
+
+    private fun createWebSession(builder: (WebSession) -> Unit = {}): WebSession = runBlocking {
+        (sessionManager as DefaultWebSessionManager).sessionStore.createWebSession()
+            .awaitSingle()
+            .apply(builder)
+            .also { it.save().block() }
     }
 
     companion object {

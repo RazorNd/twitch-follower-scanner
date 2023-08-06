@@ -17,6 +17,8 @@
 package ru.razornd.twitch.followers.rest
 
 import org.springframework.http.HttpStatus
+import org.springframework.security.core.annotation.AuthenticationPrincipal
+import org.springframework.security.oauth2.core.oidc.user.OidcUser
 import org.springframework.web.bind.annotation.*
 import ru.razornd.twitch.followers.FollowerScan
 import ru.razornd.twitch.followers.service.ScanService
@@ -25,11 +27,12 @@ import ru.razornd.twitch.followers.service.ScanService
 @RequestMapping("/api/scans")
 class ScanController(private val service: ScanService) {
 
-    // TODO: get streamerId from current user
     @GetMapping
-    suspend fun getAll(): Collection<FollowerScan> = service.findScans("currentStreamer()")
+    suspend fun getAll(@AuthenticationPrincipal user: OidcUser): Collection<FollowerScan> =
+        service.findScans(user.idToken.subject)
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    suspend fun startScan(): FollowerScan = service.startScan("currentStreamer()")
+    suspend fun startScan(@AuthenticationPrincipal user: OidcUser): FollowerScan =
+        service.startScan(user.idToken.subject)
 }

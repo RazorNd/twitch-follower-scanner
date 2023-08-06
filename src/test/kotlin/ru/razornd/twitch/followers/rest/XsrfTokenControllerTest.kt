@@ -18,6 +18,7 @@ package ru.razornd.twitch.followers.rest
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
+import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockOidcLogin
 import org.springframework.test.web.reactive.server.WebTestClient
 import ru.razornd.twitch.followers.configuration.SecurityConfiguration
 
@@ -29,8 +30,8 @@ internal class XsrfTokenControllerTest {
 
     @Test
     fun `get xsrf token`() {
-        client.get()
-            .uri("/api/xsrf-token")
+        client.mutateWith(mockOidcLogin())
+            .get().uri("/api/xsrf-token")
             .exchange()
             .expectCookie().httpOnly("XSRF-TOKEN", true)
             .expectStatus().isOk
