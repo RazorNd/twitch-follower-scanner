@@ -14,4 +14,4 @@ spring:
             client-secret: ${twitch.client-secret}
             scope:
               - openid
-              - user:read:follows
+              - moderator:read:followers
