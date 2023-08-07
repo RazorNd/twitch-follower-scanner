@@ -21,9 +21,13 @@ import org.springframework.context.annotation.Configuration
 import org.springframework.http.HttpStatus
 import org.springframework.security.config.web.server.ServerHttpSecurity
 import org.springframework.security.config.web.server.invoke
+import org.springframework.security.oauth2.client.endpoint.OAuth2AuthorizationCodeGrantRequest
+import org.springframework.security.oauth2.client.endpoint.ReactiveOAuth2AccessTokenResponseClient
+import org.springframework.security.oauth2.client.endpoint.WebClientReactiveAuthorizationCodeTokenResponseClient
 import org.springframework.security.web.server.SecurityWebFilterChain
 import org.springframework.security.web.server.authentication.HttpStatusServerEntryPoint
 import org.springframework.security.web.server.csrf.CookieServerCsrfTokenRepository
+import ru.razornd.twitch.followers.security.support.OAuth2AccessTokenResponseBodyExtractor
 
 @Configuration
 open class SecurityConfiguration {
@@ -35,6 +39,13 @@ open class SecurityConfiguration {
             csrf { csrfTokenRepository = CookieServerCsrfTokenRepository() }
             oauth2Login { }
             exceptionHandling { authenticationEntryPoint = HttpStatusServerEntryPoint(HttpStatus.UNAUTHORIZED) }
+        }
+    }
+
+    @Bean
+    open fun accessTokenResponseClient(): ReactiveOAuth2AccessTokenResponseClient<OAuth2AuthorizationCodeGrantRequest> {
+        return WebClientReactiveAuthorizationCodeTokenResponseClient().apply {
+            setBodyExtractor(OAuth2AccessTokenResponseBodyExtractor())
         }
     }
 }
