@@ -16,6 +16,8 @@
 
 package ru.razornd.twitch.followers
 
+import io.mockk.every
+import io.mockk.mockk
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.runBlocking
 import okhttp3.mockwebserver.MockResponse
@@ -32,8 +34,12 @@ import org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDO
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
+import org.springframework.security.authentication.TestingAuthenticationToken
 import org.springframework.security.core.context.SecurityContextImpl
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClient
+import org.springframework.security.oauth2.client.ReactiveOAuth2AuthorizedClientService
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken
+import org.springframework.security.oauth2.client.registration.ClientRegistration
 import org.springframework.security.oauth2.core.oidc.IdTokenClaimNames
 import org.springframework.security.oauth2.core.oidc.OidcIdToken
 import org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser
@@ -65,23 +71,30 @@ class FollowersScannerApplicationTests {
 
     private val followersChanges = Changes(followerTable)
 
+    private val clientRegistration = mockk<ClientRegistration>(relaxed = true) {
+        every { registrationId } returns "twitch"
+    }
+
     @Autowired
     lateinit var sessionManager: WebSessionManager
 
     @Test
-    fun `scan followers`(@Autowired client: WebTestClient) {
+    fun `scan followers`(
+        @Autowired client: WebTestClient,
+        @Autowired authClientService: ReactiveOAuth2AuthorizedClientService
+    ) {
         val streamerId = "3096988"
-        val session = createOAuthSession(
-            DefaultOidcUser(
-                listOf(),
-                OidcIdToken(
-                    "token",
-                    Instant.parse("2023-08-06T19:49:00Z"),
-                    Instant.parse("2023-08-06T19:50:00Z"),
-                    mapOf(IdTokenClaimNames.SUB to streamerId)
-                )
+        val user = DefaultOidcUser(
+            listOf(),
+            OidcIdToken(
+                "token",
+                Instant.parse("2023-08-06T19:49:00Z"),
+                Instant.parse("2023-08-06T19:50:00Z"),
+                mapOf(IdTokenClaimNames.SUB to streamerId)
             )
         )
+        val session = createOAuthSession(user)
+        authClientService.authorizeMockClient(user, clientRegistration)
 
         server.enqueue(
             MockResponse()
@@ -124,6 +137,19 @@ class FollowersScannerApplicationTests {
             .change().isCreation
             .rowAtEndPoint()
             .value("streamer_id")
+    }
+
+    private fun ReactiveOAuth2AuthorizedClientService.authorizeMockClient(
+        user: Any,
+        clientRegistration: ClientRegistration
+    ) {
+        saveAuthorizedClient(
+            OAuth2AuthorizedClient(
+                clientRegistration,
+                "streamer",
+                mockk(relaxed = true)
+            ), TestingAuthenticationToken(user, null)
+        ).block()
     }
 
     private fun createOAuthSession(user: OAuth2User): WebSession = createWebSession { session ->

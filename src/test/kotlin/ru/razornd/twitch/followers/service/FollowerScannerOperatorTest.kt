@@ -18,6 +18,9 @@ package ru.razornd.twitch.followers.service
 
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.coVerify
+import io.mockk.every
+import io.mockk.mockk
+import kotlinx.coroutines.reactor.asCoroutineContext
 import kotlinx.coroutines.runBlocking
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
@@ -25,17 +28,45 @@ import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.client.RestClientTest
+import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.Configuration
 import org.springframework.http.HttpHeaders.CONTENT_TYPE
 import org.springframework.http.MediaType.APPLICATION_JSON_VALUE
+import org.springframework.mock.http.server.reactive.MockServerHttpRequest
+import org.springframework.mock.web.server.MockServerWebExchange
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClient
+import org.springframework.security.oauth2.client.registration.ClientRegistration
+import org.springframework.security.oauth2.client.registration.InMemoryReactiveClientRegistrationRepository
+import org.springframework.security.oauth2.client.web.server.ServerOAuth2AuthorizedClientRepository
+import org.springframework.security.oauth2.core.AuthorizationGrantType
+import org.springframework.test.context.ContextConfiguration
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
+import org.springframework.web.server.ServerWebExchange
+import reactor.kotlin.core.publisher.toMono
+import reactor.util.context.Context
 import ru.razornd.twitch.followers.Follower
 import ru.razornd.twitch.followers.FollowerRepository
 import ru.razornd.twitch.followers.FollowerScan
 import ru.razornd.twitch.followers.configuration.TwitchWebClientConfiguration
 import java.time.Instant
 
-@RestClientTest(components = [FollowerScannerOperator::class, TwitchWebClientConfiguration::class])
+private val clientRegistration = ClientRegistration.withRegistrationId("twitch")
+    .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
+    .clientId("test-client-id")
+    .redirectUri("/redirect")
+    .authorizationUri("https://id.server/authorize")
+    .tokenUri("https://id.server/token")
+    .build()
+
+@RestClientTest
+@ContextConfiguration(
+    classes = [
+        FollowerScannerOperatorTest.ClientConfiguration::class,
+        TwitchWebClientConfiguration::class,
+        FollowerScannerOperator::class
+    ]
+)
 class FollowerScannerOperatorTest {
 
     @Autowired
@@ -44,9 +75,20 @@ class FollowerScannerOperatorTest {
     @MockkBean(relaxUnitFun = true)
     lateinit var repository: FollowerRepository
 
+    @MockkBean
+    lateinit var authorizedClientRepository: ServerOAuth2AuthorizedClientRepository
+
     @Test
     fun `should fetch followers from twitch api and save it in repository`() {
         val followerScan = FollowerScan("629786", 42, Instant.now())
+        every {
+            authorizedClientRepository.loadAuthorizedClient<OAuth2AuthorizedClient>(
+                eq("twitch"),
+                any(),
+                any()
+            )
+        } returns OAuth2AuthorizedClient(clientRegistration, "streamer", mockk(relaxed = true)).toMono()
+
         server.enqueue(
             MockResponse()
                 .setHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE)
@@ -68,7 +110,10 @@ class FollowerScannerOperatorTest {
                 )
         )
 
-        runBlocking { scannerOperator.scanAndSave(followerScan) }
+        val webExchange = MockServerWebExchange.from(MockServerHttpRequest.get("/"))
+        runBlocking(Context.of(ServerWebExchange::class.java, webExchange).asCoroutineContext()) {
+            scannerOperator.scanAndSave(followerScan)
+        }
 
         coVerify {
             repository.insertOrUpdate(
@@ -80,6 +125,15 @@ class FollowerScannerOperatorTest {
                     Instant.parse("2022-05-24T22:22:08Z")
                 )
             )
+        }
+    }
+
+    @Configuration
+    open class ClientConfiguration {
+
+        @Bean
+        open fun inMemoryClientRegistration(): InMemoryReactiveClientRegistrationRepository {
+            return InMemoryReactiveClientRegistrationRepository(clientRegistration)
         }
     }
 

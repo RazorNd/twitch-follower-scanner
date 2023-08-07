@@ -21,6 +21,9 @@ import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.security.oauth2.client.registration.ReactiveClientRegistrationRepository
+import org.springframework.security.oauth2.client.web.reactive.function.client.ServerOAuth2AuthorizedClientExchangeFilterFunction
+import org.springframework.security.oauth2.client.web.server.ServerOAuth2AuthorizedClientRepository
 import org.springframework.web.reactive.function.client.WebClient
 
 @Qualifier
@@ -37,7 +40,16 @@ open class TwitchWebClientConfiguration internal constructor(private val propert
 
     @Bean
     @TwitchClient
-    open fun twitchWebClient(builder: WebClient.Builder): WebClient {
-        return builder.baseUrl(properties.baseUrl).build()
+    open fun twitchWebClient(
+        builder: WebClient.Builder,
+        registrationRepository: ReactiveClientRegistrationRepository,
+        clientRepository: ServerOAuth2AuthorizedClientRepository
+    ): WebClient {
+        return builder.baseUrl(properties.baseUrl)
+            .filter(ServerOAuth2AuthorizedClientExchangeFilterFunction(registrationRepository, clientRepository).also {
+                it.setDefaultClientRegistrationId("twitch")
+            })
+            .defaultHeader("Client-Id", registrationRepository.findByRegistrationId("twitch").block()?.clientId)
+            .build()
     }
 }
