@@ -48,6 +48,7 @@ import org.springframework.security.web.server.context.WebSessionServerSecurityC
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
 import org.springframework.test.web.reactive.server.WebTestClient
+import org.springframework.test.web.reactive.server.expectBodyList
 import org.springframework.web.server.WebSession
 import org.springframework.web.server.session.DefaultWebSessionManager
 import org.springframework.web.server.session.WebSessionManager
@@ -137,6 +138,35 @@ class FollowersScannerApplicationTests {
             .change().isCreation
             .rowAtEndPoint()
             .value("streamer_id")
+    }
+
+    @Test
+    fun `show followers`(@Autowired client: WebTestClient) {
+        val streamerId = "913613"
+        val user = DefaultOidcUser(
+            listOf(),
+            OidcIdToken(
+                "token",
+                Instant.parse("2023-08-06T19:49:00Z"),
+                Instant.parse("2023-08-06T19:50:00Z"),
+                mapOf(IdTokenClaimNames.SUB to streamerId)
+            )
+        )
+        val session = createOAuthSession(user)
+
+        client.get().uri("/api/followers")
+            .cookie("SESSION", session.id)
+            .exchange()
+            .expectStatus().isOk
+            .expectBodyList<FollowerDto>()
+            .hasSize(100)
+            .contains(
+                FollowerDto(false, "36514", "werner.sanford", Instant.parse("2023-01-02T21:56:13.027Z")),
+                FollowerDto(true, "29786", "norberto.king", Instant.parse("2023-02-06T08:36:23.072Z")),
+                FollowerDto(true, "22249", "jerry.muller", Instant.parse("2022-12-18T11:41:24.411Z")),
+                FollowerDto(false, "02993", "foster.wilkinson", Instant.parse("2022-08-27T13:51:59.515Z")),
+            )
+
     }
 
     private fun ReactiveOAuth2AuthorizedClientService.authorizeMockClient(

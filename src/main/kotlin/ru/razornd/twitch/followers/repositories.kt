@@ -39,6 +39,9 @@ interface ScanRepository : Repository<FollowerScan, Any> {
 }
 
 interface FollowerRepository : Repository<Follower, Any>, FollowerUpsert {
+
+    fun findByStreamerId(streamerId: String): Flow<Follower>
+
     fun findByStreamerIdAndScanNumber(streamerId: String, scanNumber: Int): Flow<Follower>
 
     fun findByStreamerIdAndScanNumberLessThan(streamerId: String, scanNumber: Int): Flow<Follower>

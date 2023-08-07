@@ -16,13 +16,29 @@
 
 package ru.razornd.twitch.followers.service
 
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.toList
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
+import ru.razornd.twitch.followers.Follower
 import ru.razornd.twitch.followers.FollowerDto
+import ru.razornd.twitch.followers.FollowerRepository
+import ru.razornd.twitch.followers.ScanRepository
 
 @Service
-class FollowersService {
-    suspend fun findFollowers(streamerId: String): Collection<FollowerDto> {
-        TODO("Not yet implemented")
+open class FollowersService(
+    private val followerRepository: FollowerRepository,
+    private val scanRepository: ScanRepository
+) {
+    @Transactional(readOnly = true)
+    open suspend fun findFollowers(streamerId: String): Collection<FollowerDto> {
+        val actualScanNumber = actualScanNumber(streamerId) ?: return emptyList()
+        return followerRepository.findByStreamerId(streamerId).map { it.asDto(actualScanNumber) }.toList()
     }
 
+    private suspend fun actualScanNumber(streamerId: String): Int? =
+        scanRepository.findTopByStreamerIdOrderByScanNumberDesc(streamerId)?.scanNumber
+
+    private fun Follower.asDto(actualScanNumber: Int): FollowerDto =
+        FollowerDto(scanNumber != actualScanNumber, userId, userName, followedAt)
 }
