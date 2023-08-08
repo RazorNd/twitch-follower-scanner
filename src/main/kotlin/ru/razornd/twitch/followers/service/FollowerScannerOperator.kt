@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies.SnakeCaseStrategy
 import com.fasterxml.jackson.databind.annotation.JsonNaming
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import org.springframework.aot.hint.annotation.RegisterReflectionForBinding
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.awaitBody
@@ -38,6 +39,7 @@ class FollowerScannerOperator(
     private val repository: FollowerRepository
 ) {
 
+    @RegisterReflectionForBinding(PagedResponse::class, FollowerDto::class)
     suspend fun scanAndSave(scan: FollowerScan) {
         fetchFollowers(scan).collect { repository.insertOrUpdate(it.toModel(scan)) }
     }
