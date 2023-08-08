@@ -59,3 +59,7 @@ tasks.compileKotlin {
 tasks.test {
     useJUnitPlatform()
 }
+
+tasks.processAot {
+    jvmArgs = listOf("-Dspring.profiles.active=process-aot")
+}

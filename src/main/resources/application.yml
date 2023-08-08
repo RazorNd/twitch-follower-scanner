@@ -1,10 +1,6 @@
 spring:
   application:
     name: twitch-followers-scanner
-  r2dbc:
-    url: ${postgres.url}
-    username: ${postgres.username}
-    password: ${postgres.password}
   security:
     oauth2:
       client:
@@ -19,3 +15,11 @@ spring:
             scope:
               - openid
               - moderator:read:followers
+
+---
+spring:
+  config:
+    activate:
+      on-profile: process-aot
+  r2dbc:
+    url: r2dbc:postgres://none/none
