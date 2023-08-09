@@ -78,7 +78,7 @@ class ScanRepositoryTest {
 
     @Test
     fun `should save entity`() {
-        val scan = FollowerScan("2252", 1, Instant.now())
+        val scan = FollowerScan("2252", 1, Instant.parse("1980-02-05T09:29:49Z"))
 
         changes.setStartPointNow()
         Assertions.assertThat(runBlocking { repository.save(scan) }).hasNoNullFieldsOrProperties()
