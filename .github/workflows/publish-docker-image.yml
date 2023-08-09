@@ -1,0 +1,31 @@
+name: Publish Docker Image to ghcr.io
+
+on:
+  push:
+    branches: [ 'master', 'publish-docker-image' ]
+
+env:
+  REGISTRY: ghcr.io
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    name: Build Application, create Docker Image and publish
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'liberica'
+          cache: gradle
+      - name: Build, Create Docker Image and Publish
+        run: ./gradlew bootBuildImage --publishImage -PregistryUrl=${{ env.REGISTRY }} -PregistryUsername=${{ github.actor }} -PregistryPassword=${{ secrets.GITHUB_TOKEN }}
+
+

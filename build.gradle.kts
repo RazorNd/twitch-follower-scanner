@@ -63,3 +63,21 @@ tasks.test {
 tasks.processAot {
     jvmArgs = listOf("-Dspring.profiles.active=process-aot")
 }
+
+tasks.bootBuildImage {
+    val registryUrl: String? by project
+    val registryUsername: String? by project
+    val registryPassword: String? by project
+
+    val domain = listOfNotNull(registryUrl, registryUsername?.lowercase(), project.name).joinToString("/")
+
+    imageName = "$domain:${project.version}"
+
+    docker {
+        publishRegistry {
+            url = registryUrl
+            username = registryUsername
+            password = registryPassword
+        }
+    }
+}

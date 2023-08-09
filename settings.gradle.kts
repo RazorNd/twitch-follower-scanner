@@ -1,1 +1,1 @@
-rootProject.name = "followers-scanner"
+rootProject.name = "twitch-followers-scanner"
