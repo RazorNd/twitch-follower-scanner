@@ -24,3 +24,9 @@ data class FollowerDto(
     val userName: String,
     val followedAt: Instant
 )
+
+data class UserInfo(
+    val id: String,
+    val name: String,
+    val picture: String
+)

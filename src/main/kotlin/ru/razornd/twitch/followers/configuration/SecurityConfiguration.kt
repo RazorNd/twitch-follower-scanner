@@ -16,6 +16,7 @@
 
 package ru.razornd.twitch.followers.configuration
 
+import net.minidev.json.JSONObject
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.http.HttpStatus
@@ -24,20 +25,41 @@ import org.springframework.security.config.web.server.invoke
 import org.springframework.security.oauth2.client.endpoint.OAuth2AuthorizationCodeGrantRequest
 import org.springframework.security.oauth2.client.endpoint.ReactiveOAuth2AccessTokenResponseClient
 import org.springframework.security.oauth2.client.endpoint.WebClientReactiveAuthorizationCodeTokenResponseClient
+import org.springframework.security.oauth2.client.oidc.userinfo.OidcReactiveOAuth2UserService
+import org.springframework.security.oauth2.client.registration.ReactiveClientRegistrationRepository
+import org.springframework.security.oauth2.client.web.server.DefaultServerOAuth2AuthorizationRequestResolver
 import org.springframework.security.web.server.SecurityWebFilterChain
 import org.springframework.security.web.server.authentication.HttpStatusServerEntryPoint
 import org.springframework.security.web.server.csrf.CookieServerCsrfTokenRepository
+import reactor.core.publisher.Mono
 import ru.razornd.twitch.followers.security.support.OAuth2AccessTokenResponseBodyExtractor
 
 @Configuration
 open class SecurityConfiguration {
 
     @Bean
-    open fun securityWebFilterChain(http: ServerHttpSecurity): SecurityWebFilterChain {
+    open fun securityWebFilterChain(
+        http: ServerHttpSecurity,
+        registrationRepository: ReactiveClientRegistrationRepository
+    ): SecurityWebFilterChain {
         return http {
             authorizeExchange { authorize(anyExchange, authenticated) }
             csrf { csrfTokenRepository = CookieServerCsrfTokenRepository() }
-            oauth2Login { }
+            oauth2Login {
+                authorizationRequestResolver =
+                    DefaultServerOAuth2AuthorizationRequestResolver(registrationRepository).apply {
+                        setAuthorizationRequestCustomizer {
+                            it.additionalParameters { params ->
+                                params["claims"] = JSONObject(
+                                    mapOf<String, Any>(
+                                        "id_token" to mapOf("picture" to null, "preferred_username" to null)
+                                    )
+                                )
+                            }
+                        }
+                    }
+
+            }
             exceptionHandling { authenticationEntryPoint = HttpStatusServerEntryPoint(HttpStatus.UNAUTHORIZED) }
         }
     }
@@ -46,6 +68,13 @@ open class SecurityConfiguration {
     open fun accessTokenResponseClient(): ReactiveOAuth2AccessTokenResponseClient<OAuth2AuthorizationCodeGrantRequest> {
         return WebClientReactiveAuthorizationCodeTokenResponseClient().apply {
             setBodyExtractor(OAuth2AccessTokenResponseBodyExtractor())
+        }
+    }
+
+    @Bean
+    open fun oidcReactiveOAuth2UserService(): OidcReactiveOAuth2UserService {
+        return OidcReactiveOAuth2UserService().apply {
+            setOauth2UserService { Mono.empty() }
         }
     }
 }
