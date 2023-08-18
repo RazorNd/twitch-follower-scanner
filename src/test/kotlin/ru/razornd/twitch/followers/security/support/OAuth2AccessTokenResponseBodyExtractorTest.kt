@@ -17,7 +17,8 @@
 package ru.razornd.twitch.followers.security.support
 
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.MethodSource
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.codec.DecoderHttpMessageReader
@@ -39,30 +40,59 @@ class OAuth2AccessTokenResponseBodyExtractorTest {
 
     private val bodyExtractor = OAuth2AccessTokenResponseBodyExtractor()
 
-    @Test
-    fun `parse twitch token response`() {
+    @MethodSource("arguments")
+    @ParameterizedTest
+    fun `parse twitch token response`(body: String) {
         val inputMessage = MockClientHttpResponse(HttpStatus.OK)
         inputMessage.headers.contentType = MediaType.APPLICATION_JSON
-        //language=JSON
-        inputMessage.setBody(
-            """
-            {
-              "access_token": "access_token_value",
-              "refresh_token": "refresh_token_value",
-              "scope": [
-                "openid",
-                "user:read:follows"
-              ],
-              "id_token": "id_token_value",
-              "token_type": "bearer",
-              "expires_in": 13446,
-              "nonce": "nonce_value"
-            }
-        """.trimIndent()
-        )
+        inputMessage.setBody(body)
 
         val response = bodyExtractor.extract(inputMessage, context).block()
 
         assertThat(response).isNotNull
+    }
+
+    companion object {
+        @JvmStatic
+        fun arguments(): Collection<String> {
+            //language=JSON
+            return listOf(
+                """
+                {
+                  "access_token": "access_token_value",
+                  "refresh_token": "refresh_token_value",
+                  "scope": [
+                    "openid",
+                    "user:read:follows"
+                  ],
+                  "id_token": "id_token_value",
+                  "token_type": "bearer",
+                  "expires_in": 13446,
+                  "nonce": "nonce_value"
+                }
+                """.trimIndent(),
+                """
+                {
+                    "access_token": "access_token_value",
+                    "refresh_token": "refresh_token_value",
+                    "id_token": "id_token_value",
+                    "token_type": "bearer",
+                    "expires_in": 13446,
+                    "nonce": "nonce_value"
+                }
+                """.trimIndent(),
+                """
+                {
+                    "access_token": "access_token_value",
+                    "refresh_token": "refresh_token_value",
+                    "scope":  "openid user:read:follows",
+                    "id_token": "id_token_value",
+                    "token_type": "bearer",
+                    "expires_in": 13446,
+                    "nonce": "nonce_value"
+                }
+                """.trimIndent(),
+            )
+        }
     }
 }
