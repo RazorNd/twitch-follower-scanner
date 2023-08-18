@@ -18,12 +18,19 @@ package ru.razornd.twitch.followers.rest
 
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.autoconfigure.restdocs.AutoConfigureRestDocs
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
+import org.springframework.context.annotation.Import
+import org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath
+import org.springframework.restdocs.payload.PayloadDocumentation.responseFields
+import org.springframework.restdocs.webtestclient.WebTestClientRestDocumentation.document
 import org.springframework.security.oauth2.core.oidc.StandardClaimNames
 import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockOidcLogin
 import org.springframework.test.web.reactive.server.WebTestClient
 import ru.razornd.twitch.followers.configuration.SecurityConfiguration
 
+@AutoConfigureRestDocs
+@Import(RestDocsConfiguration::class)
 @WebFluxTest(controllers = [UserInfoController::class, SecurityConfiguration::class])
 class UserInfoControllerTest(@Autowired val client: WebTestClient) {
 
@@ -50,6 +57,15 @@ class UserInfoControllerTest(@Autowired val client: WebTestClient) {
                   "picture": "$picture"
                 }
                 """.trimIndent()
+            ).consumeWith(
+                document(
+                    "user-info/get",
+                    responseFields(
+                        fieldWithPath("id").description("ID of the current user on Twitch"),
+                        fieldWithPath("name").description("Name of the current user on Twitch"),
+                        fieldWithPath("picture").description("User Image URL on Twitch")
+                    )
+                )
             )
     }
 
