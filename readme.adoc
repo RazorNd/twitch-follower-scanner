@@ -1,0 +1,93 @@
+:source-highlighter: highlight.js
+= Twitch Follower Scanner
+
+This application collects followers from Twitch, stores them in Postgres, and then can analyze which users have unsubscribed.
+
+== Description
+
+This application retrieves follower information from the Twitch API and stores it in a database with a scan tag.
+After receiving follower again, their tags are updated.
+Unfollowed followers are all followers with not the last tags.
+
+== Running
+
+The easiest way to run this application is to use docker-compose.
+Here is an example of such a file:
+
+.docker-compose.yml
+[source,yaml,options="nowrap"]
+----
+version: '3'
+
+services:
+  backend:
+    image: ghcr.io/razornd/twitch-followers-scanner:0.0.1-snapshot
+    environment:
+      TWITCH_CLIENT_ID: CLIENT_ID
+      TWITCH_CLIENT_SECRET: CLIENT_SECRET
+      SPRING_R2DBC_URL: r2dbc:postgresql://database:5432/twitch
+      SPRING_R2DBC_USERNAME: postgres
+      SPRING_R2DBC_PASSWORD: sZ3bIaSnVlBexlpC
+    ports:
+      - '8080:8080'
+    depends_on: [ database ]
+
+  database:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: twitch
+      POSTGRES_PASSWORD: sZ3bIaSnVlBexlpC
+    volumes:
+      - ./init.sql/:/docker-entrypoint-initdb.d/init.sql
+----
+
+In this example, you need to replace `CLIENT_ID` and `CLIENT_SECRET` with values that you can get for your application registered in the https://dev.twitch.tv/console/apps[Twitch developer console].
+
+You also need to create a database initialization file named init.sql.
+This file should be placed in the same directory as docker-compose.yml.
+With the following content:
+
+.init.sql
+[source,sql]
+----
+CREATE TABLE follower_scan
+(
+    streamer_id varchar(50) NOT NULL,
+    scan_number integer     NOT NULL,
+    created_at  timestamp   NOT NULL,
+
+    PRIMARY KEY (streamer_id, scan_number)
+);
+
+CREATE TABLE follower
+(
+    streamer_id varchar(50)   NOT NULL,
+    user_id     varchar(50)   NOT NULL,
+    scan_number integer       NOT NULL,
+    user_name   varchar(2048) NOT NULL,
+    followed_at timestamp     NOT NULL,
+
+    PRIMARY KEY (streamer_id, user_id)
+);
+----
+
+Once you have created these files, you can start the service with docker-compose.
+
+[source,shell]
+----
+$ docker compose up -d
+----
+
+To stop running containers, but not delete them (so that scan results are not lost), run the following command:
+
+[source,shell]
+----
+$ docker compose stop
+----
+
+To remove running containers run:
+
+[source,shell]
+----
+$ docker compose down
+----
