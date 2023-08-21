@@ -33,13 +33,20 @@ services:
       SPRING_FLYWAY_PASSWORD: sZ3bIaSnVlBexlpC
     ports:
       - '8080:8080'
-    depends_on: [ database ]
+    depends_on:
+      database:
+        condition: service_healthy
 
   database:
     image: postgres:15-alpine
     environment:
       POSTGRES_DB: twitch
       POSTGRES_PASSWORD: sZ3bIaSnVlBexlpC
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 ----
 
 You also need to create a `twitch.env` file with `CLIENT_ID` and `CLIENT_SECRET`.
