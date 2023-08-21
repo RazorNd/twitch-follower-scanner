@@ -4,9 +4,9 @@ on:
   push:
     branches: [ 'master' ]
     paths:
-      - /src/**
-      - /build.gradle.kts
-      - /settings.gradle.kts
+      - src/**
+      - build.gradle.kts
+      - settings.gradle.kts
 
 env:
   REGISTRY: ghcr.io
