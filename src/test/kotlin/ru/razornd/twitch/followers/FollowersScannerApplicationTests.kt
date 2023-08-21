@@ -40,6 +40,7 @@ import org.springframework.security.oauth2.client.OAuth2AuthorizedClient
 import org.springframework.security.oauth2.client.ReactiveOAuth2AuthorizedClientService
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken
 import org.springframework.security.oauth2.client.registration.ClientRegistration
+import org.springframework.security.oauth2.core.OAuth2AccessToken
 import org.springframework.security.oauth2.core.oidc.IdTokenClaimNames
 import org.springframework.security.oauth2.core.oidc.OidcIdToken
 import org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser
@@ -177,7 +178,12 @@ class FollowersScannerApplicationTests {
             OAuth2AuthorizedClient(
                 clientRegistration,
                 "streamer",
-                mockk(relaxed = true)
+                OAuth2AccessToken(
+                    OAuth2AccessToken.TokenType.BEARER,
+                    "token",
+                    Instant.parse("1978-06-07T07:22:54Z"),
+                    Instant.parse("2013-09-28T22:50:09Z")
+                )
             ), TestingAuthenticationToken(user, null)
         ).block()
     }

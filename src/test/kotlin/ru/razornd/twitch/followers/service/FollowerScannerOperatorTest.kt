@@ -35,9 +35,9 @@ import org.springframework.http.MediaType.APPLICATION_JSON_VALUE
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest
 import org.springframework.mock.web.server.MockServerWebExchange
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient
+import org.springframework.security.oauth2.client.ReactiveOAuth2AuthorizedClientService
 import org.springframework.security.oauth2.client.registration.ClientRegistration
 import org.springframework.security.oauth2.client.registration.InMemoryReactiveClientRegistrationRepository
-import org.springframework.security.oauth2.client.web.server.ServerOAuth2AuthorizedClientRepository
 import org.springframework.security.oauth2.core.AuthorizationGrantType
 import org.springframework.test.context.ContextConfiguration
 import org.springframework.test.context.DynamicPropertyRegistry
@@ -76,17 +76,15 @@ class FollowerScannerOperatorTest {
     lateinit var repository: FollowerRepository
 
     @MockkBean
-    lateinit var authorizedClientRepository: ServerOAuth2AuthorizedClientRepository
+    lateinit var authorizedClientService: ReactiveOAuth2AuthorizedClientService
 
     @Test
     fun `should fetch followers from twitch api and save it in repository`() {
         val followerScan = FollowerScan("629786", 42, Instant.now())
+
+        @Suppress("ReactiveStreamsUnusedPublisher")
         every {
-            authorizedClientRepository.loadAuthorizedClient<OAuth2AuthorizedClient>(
-                eq("twitch"),
-                any(),
-                any()
-            )
+            authorizedClientService.loadAuthorizedClient<OAuth2AuthorizedClient>(eq("twitch"), any())
         } returns OAuth2AuthorizedClient(clientRegistration, "streamer", mockk(relaxed = true)).toMono()
 
         server.enqueue(
