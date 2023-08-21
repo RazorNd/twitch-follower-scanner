@@ -38,7 +38,7 @@ services:
       POSTGRES_DB: twitch
       POSTGRES_PASSWORD: sZ3bIaSnVlBexlpC
     volumes:
-      - ./init.sql/:/docker-entrypoint-initdb.d/init.sql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
 ----
 
 In this example, you need to replace `CLIENT_ID` and `CLIENT_SECRET` with values that you can get for your application registered in the https://dev.twitch.tv/console/apps[Twitch developer console].
