@@ -22,12 +22,15 @@ version: '3'
 services:
   backend:
     image: ghcr.io/razornd/twitch-followers-scanner:0.0.1-snapshot
+    env_file:
+      - twitch.env
     environment:
-      TWITCH_CLIENT_ID: CLIENT_ID
-      TWITCH_CLIENT_SECRET: CLIENT_SECRET
       SPRING_R2DBC_URL: r2dbc:postgresql://database:5432/twitch
       SPRING_R2DBC_USERNAME: postgres
       SPRING_R2DBC_PASSWORD: sZ3bIaSnVlBexlpC
+      SPRING_FLYWAY_URL: jdbc:postgresql://database:5432/twitch
+      SPRING_FLYWAY_USER: postgres
+      SPRING_FLYWAY_PASSWORD: sZ3bIaSnVlBexlpC
     ports:
       - '8080:8080'
     depends_on: [ database ]
@@ -37,38 +40,17 @@ services:
     environment:
       POSTGRES_DB: twitch
       POSTGRES_PASSWORD: sZ3bIaSnVlBexlpC
-    volumes:
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
 ----
 
-In this example, you need to replace `CLIENT_ID` and `CLIENT_SECRET` with values that you can get for your application registered in the https://dev.twitch.tv/console/apps[Twitch developer console].
+You also need to create a `twitch.env` file with `CLIENT_ID` and `CLIENT_SECRET`.
+You must obtain that from application registered in the https://dev.twitch.tv/console/apps[Twitch developer console].
+Example of that file:
 
-You also need to create a database initialization file named init.sql.
-This file should be placed in the same directory as docker-compose.yml.
-With the following content:
-
-.init.sql
-[source,sql]
+.twitch.env
+[source,shell]
 ----
-CREATE TABLE follower_scan
-(
-    streamer_id varchar(50) NOT NULL,
-    scan_number integer     NOT NULL,
-    created_at  timestamp   NOT NULL,
-
-    PRIMARY KEY (streamer_id, scan_number)
-);
-
-CREATE TABLE follower
-(
-    streamer_id varchar(50)   NOT NULL,
-    user_id     varchar(50)   NOT NULL,
-    scan_number integer       NOT NULL,
-    user_name   varchar(2048) NOT NULL,
-    followed_at timestamp     NOT NULL,
-
-    PRIMARY KEY (streamer_id, user_id)
-);
+TWITCH_CLIENT_ID=bI1FsbzgXOg5bgZt80NxL08ghlz8JOnGip05pin5W
+TWITCH_CLIENT_SECRET=bQNcd01KNPx5rSe456o6Az6KsifXFdOlEpRMal42J
 ----
 
 Once you have created these files, you can start the service with docker-compose.
