@@ -1,0 +1,84 @@
+:source-highlighter: highlight.js
+= Twitch Follower Scanner
+
+image::https://github.com/RazorNd/twitch-follower-scanner/actions/workflows/check.yml/badge.svg?branch=master[Java CI with Gradle]
+
+This application collects followers from Twitch, stores them in Postgres, and then can analyze which users have unsubscribed.
+
+== Description
+
+This application retrieves follower information from the Twitch API and stores it in a database with a scan tag.
+After receiving follower again, their tags are updated.
+Unfollowed followers are all followers with not the last tags.
+
+== Running
+
+The easiest way to run this application is to use docker-compose.
+Here is an example of such a file:
+
+.docker-compose.yml
+[source,yaml,options="nowrap"]
+----
+version: '3'
+
+services:
+  backend:
+    image: ghcr.io/razornd/twitch-followers-scanner:0.0.1-snapshot
+    env_file:
+      - twitch.env
+    environment:
+      SPRING_R2DBC_URL: r2dbc:postgresql://database:5432/twitch
+      SPRING_R2DBC_USERNAME: postgres
+      SPRING_R2DBC_PASSWORD: sZ3bIaSnVlBexlpC
+      SPRING_FLYWAY_URL: jdbc:postgresql://database:5432/twitch
+      SPRING_FLYWAY_USER: postgres
+      SPRING_FLYWAY_PASSWORD: sZ3bIaSnVlBexlpC
+    ports:
+      - '8080:8080'
+    depends_on:
+      database:
+        condition: service_healthy
+
+  database:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: twitch
+      POSTGRES_PASSWORD: sZ3bIaSnVlBexlpC
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+----
+
+You also need to create a `twitch.env` file with `CLIENT_ID` and `CLIENT_SECRET`.
+You must obtain that from application registered in the https://dev.twitch.tv/console/apps[Twitch developer console].
+Example of that file:
+
+.twitch.env
+[source,shell]
+----
+TWITCH_CLIENT_ID=bI1FsbzgXOg5bgZt80NxL08ghlz8JOnGip05pin5W
+TWITCH_CLIENT_SECRET=bQNcd01KNPx5rSe456o6Az6KsifXFdOlEpRMal42J
+----
+
+Once you have created these files, you can start the service with docker-compose.
+
+[source,shell]
+----
+$ docker compose up -d
+----
+
+To stop running containers, but not delete them (so that scan results are not lost), run the following command:
+
+[source,shell]
+----
+$ docker compose stop
+----
+
+To remove running containers run:
+
+[source,shell]
+----
+$ docker compose down
+----

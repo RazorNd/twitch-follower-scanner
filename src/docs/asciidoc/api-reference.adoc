@@ -1,0 +1,42 @@
+= Twitch Follower Scanner API Reference
+:toclevels: 1
+:toc: left
+:source-highlighter: rouge
+
+The current documentation will use `twitch-follower-scanner.dev` as the *host*, but you need to change it to the *host* where you deployed the application.
+
+[#auth]
+== Authorization
+
+That application used Session authorization.
+For authorization, you need to open the url `/oauth2/authorization/twitch` in your browser.
+After that, the user will be redirected to the Twitch authorization page, where he will be asked to give access to this application.
+If the user grants access to this application, he will be redirected back to the application, and his authorization will be saved to the session.
+
+== User Info
+
+Get user info of streamer that was link:#auth[authorized] in the application.
+
+operation::user-info/get[snippets='http-request,response-body,response-fields']
+
+== Get Followers
+
+Get a list of users that were obtained as a result of scanning followers of a steamer that was link:#auth[authorized] in the application.
+
+operation::followers/list[snippets='http-request,response-body,response-fields']
+
+== Get Scans
+
+Get a list of scan operations for streamer that was link:#auth[authorized] in the application.
+
+operation::scans/list[snippets='http-request,response-body,response-fields']
+
+== Start new scan
+
+Start new follower scan operation for streamer that was link:#auth[authorized] in the application.
+
+operation::scans/create[snippets='http-request,request-headers,response-body,response-fields']
+
+== Get XSRF token
+
+operation::xsrf/get[snippets='http-request,response-body,response-fields']

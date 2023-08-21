@@ -24,10 +24,18 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.autoconfigure.restdocs.AutoConfigureRestDocs
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
 import org.springframework.context.annotation.Import
 import org.springframework.http.HttpMethod
 import org.springframework.http.MediaType
+import org.springframework.restdocs.headers.HeaderDocumentation.headerWithName
+import org.springframework.restdocs.headers.HeaderDocumentation.requestHeaders
+import org.springframework.restdocs.operation.preprocess.Preprocessors.modifyHeaders
+import org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessRequest
+import org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath
+import org.springframework.restdocs.payload.PayloadDocumentation.responseFields
+import org.springframework.restdocs.webtestclient.WebTestClientRestDocumentation.document
 import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.csrf
 import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockOidcLogin
 import org.springframework.test.web.reactive.server.WebTestClient
@@ -36,10 +44,20 @@ import ru.razornd.twitch.followers.configuration.SecurityConfiguration
 import ru.razornd.twitch.followers.service.ScanService
 import java.time.Instant
 
-@WebFluxTest(controllers = [ScanController::class], properties = ["logging.level.org.springframework.security.web.server=debug"])
-@Import(SecurityConfiguration::class)
+@WebFluxTest(
+    controllers = [ScanController::class],
+    properties = ["logging.level.org.springframework.security.web.server=debug"]
+)
+@AutoConfigureRestDocs
+@Import(SecurityConfiguration::class, RestDocsConfiguration::class)
 @MockKExtension.CheckUnnecessaryStub
 class ScanControllerTest(@Autowired val webClient: WebTestClient) {
+
+    private val scanFields = listOf(
+        fieldWithPath("streamerId").description("ID of the Streamer in Twitch"),
+        fieldWithPath("scanNumber").description("Scan sequence number"),
+        fieldWithPath("createdAt").description("Scan date")
+    )
 
     @MockkBean(relaxed = true)
     lateinit var scanService: ScanService
@@ -86,7 +104,7 @@ class ScanControllerTest(@Autowired val webClient: WebTestClient) {
                   }
                 ]
             """.trimIndent()
-            )
+            ).consumeWith(document("scans/list", responseFields().andWithPrefix("[].", scanFields)))
 
         coVerify { scanService.findScans(streamerId) }
     }
@@ -102,10 +120,13 @@ class ScanControllerTest(@Autowired val webClient: WebTestClient) {
             )
         }
 
+
         webClient.mutateWith(csrf())
             .mutateWith(mockOidcLogin().idToken { it.subject(streamerId) })
             .post()
             .uri("/api/scans")
+            .header("X-XSRF-TOKEN", "247ec92d-2824-4422-bcb2-409bb6c50cea")
+            .cookie("SESSION", "1197bf5f-ba2e-440a-96eb-82f8a8cae146")
             .accept(MediaType.APPLICATION_JSON)
             .exchange()
             .expectStatus().isCreated
@@ -117,6 +138,13 @@ class ScanControllerTest(@Autowired val webClient: WebTestClient) {
                   "createdAt": "2023-08-04T16:27:00Z"
                 }
             """.trimIndent()
+            ).consumeWith(
+                document(
+                    "scans/create",
+                    preprocessRequest(modifyHeaders().remove("Content-Type")),
+                    responseFields(scanFields),
+                    requestHeaders(headerWithName("X-XSRF-TOKEN").description("XSRF token"))
+                )
             )
     }
 

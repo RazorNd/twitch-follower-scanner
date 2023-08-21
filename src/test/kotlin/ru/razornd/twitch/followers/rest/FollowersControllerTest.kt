@@ -20,7 +20,12 @@ import com.ninjasquad.springmockk.MockkBean
 import io.mockk.coEvery
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.autoconfigure.restdocs.AutoConfigureRestDocs
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
+import org.springframework.context.annotation.Import
+import org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath
+import org.springframework.restdocs.payload.PayloadDocumentation.responseFields
+import org.springframework.restdocs.webtestclient.WebTestClientRestDocumentation.document
 import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockOidcLogin
 import org.springframework.test.web.reactive.server.WebTestClient
 import ru.razornd.twitch.followers.FollowerDto
@@ -28,6 +33,8 @@ import ru.razornd.twitch.followers.configuration.SecurityConfiguration
 import ru.razornd.twitch.followers.service.FollowersService
 import java.time.Instant
 
+@AutoConfigureRestDocs
+@Import(RestDocsConfiguration::class)
 @WebFluxTest(controllers = [FollowersController::class, SecurityConfiguration::class])
 class FollowersControllerTest {
 
@@ -89,6 +96,14 @@ class FollowersControllerTest {
                   }
                 ]     
                 """.trimIndent()
-            )
+            ).consumeWith(
+                document(
+                    "followers/list", responseFields(
+                        fieldWithPath("[].userId").description("ID of the User in Twitch"),
+                        fieldWithPath("[].userName").description("Name of the User in Twitch"),
+                        fieldWithPath("[].followedAt").description("Date from which the user subscribed"),
+                        fieldWithPath("[].unfollowed").description("Indication that the user has unsubscribed")
+                    )
+                ))
     }
 }

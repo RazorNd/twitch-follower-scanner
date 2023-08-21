@@ -1,0 +1,150 @@
+<!--
+  ~ Copyright 2023 Daniil <RazorNd> Razorenov
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Twitch Followers Scanner</title>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Pacifico&display=swap');
+
+        body {
+            background-color: #c9f0ff;
+            font-family: 'Pacifico', cursive;
+        }
+
+        section.main {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        section div {
+            margin: 20px;
+            padding: 15px;
+            border-radius: 7px;
+            background-color: #eafffd;
+            width: 500px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23);
+        }
+
+        .followers-card span {
+            font-size: 1.2em;
+        }
+
+        button {
+            margin: 40px;
+            display: inline-block;
+            outline: none;
+            cursor: pointer;
+            font-size: 16px;
+            line-height: 20px;
+            font-weight: 600;
+            border-radius: 8px;
+            padding: 14px 24px;
+            border: none;
+            transition: box-shadow 0.2s ease 0s, -ms-transform 0.1s ease 0s, -webkit-transform 0.1s ease 0s, transform 0.1s ease 0s;
+            background: #f06c9b;
+            color: #fff;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23);
+        }
+    </style>
+</head>
+<body>
+
+<section class="main">
+    <h1>Twitch Followers Scanner</h1>
+
+    <div class="user-card">
+        <p>Current user: <span class="user-name"></span></p>
+    </div>
+
+    <div class="followers-card">
+        <span>Followers:</span>
+        <ul class="followers-list"></ul>
+    </div>
+
+    <button class="scan" onclick="newScan()">New Scan</button>
+</section>
+
+
+<script>
+  let xsrf = null;
+  async function updateUserName() {
+    const response = await fetch('/api/user-info');
+
+    const userInfo = await response.json();
+
+    document.querySelector(".user-name").innerHTML = userInfo.name;
+  }
+
+  async function updateFollowersList() {
+    const response = await fetch('/api/followers');
+
+    const followers = await response.json();
+
+    const list = document.querySelector('.followers-list');
+    list.innerHTML = '';
+
+    followers.map(follower => {
+      const li = document.createElement('li');
+      li.innerHTML = `${ follower.userName } - ${ follower.unfollowed ? 'unfollow' : 'follow' }`;
+      return li;
+    }).forEach(li => list.appendChild(li));
+  }
+
+  /**
+   * @interface XsrfToken
+   **/
+  /**
+   * @field
+   * @name XsrfToken.token
+   */
+  /**
+   * @returns {Promise<XsrfToken>}
+   */
+  async function fetchXsrf() {
+    const xsrfResponse = await fetch('/api/xsrf-token');
+
+    return await xsrfResponse.json();
+  }
+
+  async function newScan() {
+    if (xsrf === null) {
+      xsrf = await fetchXsrf();
+    }
+
+    await fetch('/api/scans', {
+      method: 'POST',
+      headers: {
+        'X-XSRF-TOKEN': xsrf.token
+      }
+    });
+
+    await updateFollowersList();
+  }
+
+  document.onreadystatechange = async () => {
+    await Promise.all([updateUserName(), updateFollowersList()]);
+  };
+</script>
+</body>
+</html>

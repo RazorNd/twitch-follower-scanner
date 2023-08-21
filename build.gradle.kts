@@ -3,6 +3,7 @@ plugins {
     id("io.spring.dependency-management") version "1.1.2"
     id("org.graalvm.buildtools.native") version "0.9.23"
     kotlin("jvm") version "1.8.22"
+    id("org.asciidoctor.jvm.convert") version "3.3.2"
 }
 
 group = "ru.razornd.twitch"
@@ -18,12 +19,15 @@ configurations {
     }
 }
 
+val asciiDoc: Configuration by configurations.creating
+
 repositories {
     mavenCentral()
 }
 
 extra["springmockk"] = "4.0.2"
 extra["assertj-db"] = "2.0.2"
+val snippetsDir = file("build/generated-snippets")
 
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-webflux")
@@ -33,9 +37,12 @@ dependencies {
     implementation("io.projectreactor.kotlin:reactor-kotlin-extensions")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
+    implementation("org.flywaydb:flyway-core")
     runtimeOnly("org.postgresql:r2dbc-postgresql")
+    runtimeOnly("org.postgresql:postgresql")
     developmentOnly("org.springframework.boot:spring-boot-docker-compose")
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
+    asciiDoc("org.springframework.restdocs:spring-restdocs-asciidoctor")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
     testImplementation("org.springframework.security:spring-security-test")
@@ -47,6 +54,7 @@ dependencies {
     testImplementation("org.testcontainers:junit-jupiter")
     testImplementation("org.testcontainers:postgresql")
     testImplementation("org.testcontainers:r2dbc")
+    testImplementation("org.springframework.restdocs:spring-restdocs-webtestclient")
 }
 
 tasks.compileKotlin {
@@ -58,6 +66,13 @@ tasks.compileKotlin {
 
 tasks.test {
     useJUnitPlatform()
+    outputs.dir(snippetsDir)
+}
+
+tasks.asciidoctor {
+    inputs.dir(snippetsDir)
+    configurations("asciiDoc")
+    dependsOn(tasks.test)
 }
 
 tasks.processAot {

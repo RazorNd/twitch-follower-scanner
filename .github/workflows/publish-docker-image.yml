@@ -2,7 +2,11 @@ name: Publish Docker Image to ghcr.io
 
 on:
   push:
-    branches: [ 'master', 'publish-docker-image' ]
+    branches: [ 'master' ]
+    paths:
+      - src/**
+      - build.gradle.kts
+      - settings.gradle.kts
 
 env:
   REGISTRY: ghcr.io
