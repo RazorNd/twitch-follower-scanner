@@ -1,4 +1,8 @@
 spring:
+  flyway:
+    url: jdbc://database/twitch
+    user: ${spring.r2dbc.username}
+    password: ${spring.r2dbc.password}
   application:
     name: twitch-followers-scanner
   security:
