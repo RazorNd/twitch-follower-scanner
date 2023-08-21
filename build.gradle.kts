@@ -42,7 +42,7 @@ dependencies {
     runtimeOnly("org.postgresql:postgresql")
     developmentOnly("org.springframework.boot:spring-boot-docker-compose")
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
-    asciiDoc("org.springframework.restdocs:spring-restdocs-asciidoctor:3.0.0")
+    asciiDoc("org.springframework.restdocs:spring-restdocs-asciidoctor")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
     testImplementation("org.springframework.security:spring-security-test")
