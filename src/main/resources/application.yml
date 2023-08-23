@@ -20,6 +20,9 @@ spring:
               - openid
               - moderator:read:followers
 
+server:
+  forward-headers-strategy: native
+
 ---
 spring:
   config:
