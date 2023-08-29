@@ -16,6 +16,7 @@
 
 package ru.razornd.twitch.followers
 
+import org.springframework.data.annotation.Id
 import java.time.Instant
 
 data class FollowerScan(
@@ -30,4 +31,13 @@ data class Follower(
     val userId: String,
     val userName: String,
     val followedAt: Instant
+)
+
+data class FollowerScanSchedule(
+    @Id
+    val streamerId: String,
+    val delayHours: Int,
+    val createdAt: Instant,
+    val endDate: Instant?,
+    val enabled: Boolean = true
 )

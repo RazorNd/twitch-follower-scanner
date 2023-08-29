@@ -38,7 +38,7 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
     implementation("org.flywaydb:flyway-core")
-    runtimeOnly("org.postgresql:r2dbc-postgresql")
+    implementation("org.postgresql:r2dbc-postgresql")
     runtimeOnly("org.postgresql:postgresql")
     developmentOnly("org.springframework.boot:spring-boot-docker-compose")
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")

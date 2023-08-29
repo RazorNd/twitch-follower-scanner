@@ -19,6 +19,7 @@
 package ru.razornd.twitch.followers
 
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.reactor.awaitSingle
 import org.springframework.data.domain.Pageable
 import org.springframework.data.r2dbc.core.*
 import org.springframework.data.relational.core.query.Criteria
@@ -75,3 +76,28 @@ class FollowerUpsertImpl(private val operations: FluentR2dbcOperations) : Follow
     }
 
 }
+
+interface FollowerScanScheduleRepository : Repository<FollowerScanSchedule, String>,
+    InsertUpdateOperation<FollowerScanSchedule> {
+
+    fun findAllByEnabledIsTrue(): Flow<FollowerScanSchedule>
+
+    suspend fun findByStreamerId(streamerId: String): FollowerScanSchedule?
+
+    suspend fun deleteByStreamerId(streamerId: String)
+}
+
+interface InsertUpdateOperation<T> {
+    suspend fun insert(model: T): T
+    suspend fun update(schedule: T): T
+
+}
+
+class InsertUpdateOperationImpl<T : Any>(private val operations: R2dbcEntityOperations) : InsertUpdateOperation<T> {
+
+    override suspend fun insert(model: T): T = operations.insert(model).awaitSingle()
+
+    override suspend fun update(schedule: T): T = operations.update(schedule).awaitSingle()
+
+}
+

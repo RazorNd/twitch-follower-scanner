@@ -69,9 +69,11 @@ private const val SALT_XSRF =
 @Testcontainers(disabledWithoutDocker = true)
 class FollowersScannerApplicationTests {
 
-    private val followerTable = Table(Source(postgres.jdbcUrl, postgres.username, postgres.password), "follower")
+    private val source = Source(postgres.jdbcUrl, postgres.username, postgres.password)
 
-    private val followersChanges = Changes(followerTable)
+    private val followersChanges = Changes(Table(source, "follower"))
+
+    private val scheduleChanges = Changes(Table(source, "follower_scan_schedule"))
 
     private val clientRegistration = mockk<ClientRegistration>(relaxed = true) {
         every { registrationId } returns "twitch"
@@ -144,16 +146,7 @@ class FollowersScannerApplicationTests {
     @Test
     fun `show followers`(@Autowired client: WebTestClient) {
         val streamerId = "913613"
-        val user = DefaultOidcUser(
-            listOf(),
-            OidcIdToken(
-                "token",
-                Instant.parse("2023-08-06T19:49:00Z"),
-                Instant.parse("2023-08-06T19:50:00Z"),
-                mapOf(IdTokenClaimNames.SUB to streamerId)
-            )
-        )
-        val session = createOAuthSession(user)
+        val session = createOAuthSessionWithDefaultUser(streamerId)
 
         client.get().uri("/api/followers")
             .cookie("SESSION", session.id)
@@ -168,6 +161,113 @@ class FollowersScannerApplicationTests {
                 FollowerDto(false, "02993", "foster.wilkinson", Instant.parse("2022-08-27T13:51:59.515Z")),
             )
 
+    }
+
+    @Test
+    fun `create scan schedule`(@Autowired client: WebTestClient) {
+        val streamerId = "88049"
+        val session = createOAuthSessionWithDefaultUser(streamerId)
+
+        scheduleChanges.setStartPointNow()
+        client.post()
+            .uri("/api/scans/schedule")
+            .cookie("XSRF-TOKEN", XSRF)
+            .cookie("SESSION", session.id)
+            .header("X-XSRF-TOKEN", SALT_XSRF)
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(
+                """
+                {
+                  "delayHours": 12
+                }
+                """.trimIndent()
+            )
+            .exchange()
+            .expectStatus().isCreated
+            .expectBody().json(
+                """
+                {
+                  "streamerId": "$streamerId",
+                  "delayHours": 12,
+                  "endDate": null,
+                  "enabled": true
+                }
+                """.trimIndent()
+            )
+        scheduleChanges.setEndPointNow()
+
+
+        assertDb(scheduleChanges)
+            .hasNumberOfChanges(1)
+            .change().isCreation
+            .rowAtEndPoint()
+            .value("streamer_id").isEqualTo(streamerId)
+            .value("delay_hours").isEqualTo(12)
+
+    }
+
+    @Test
+    fun `update scan schedule`(@Autowired client: WebTestClient) {
+        val streamerId = "166583"
+        val session = createOAuthSessionWithDefaultUser(streamerId)
+
+        scheduleChanges.setStartPointNow()
+        client.patch()
+            .uri("/api/scans/schedule")
+            .cookie("XSRF-TOKEN", XSRF)
+            .cookie("SESSION", session.id)
+            .header("X-XSRF-TOKEN", SALT_XSRF)
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(
+                """
+                {
+                  "delayHours": 12
+                }
+                """.trimIndent()
+            )
+            .exchange()
+            .expectStatus().isOk
+            .expectBody().json(
+                """
+                {
+                  "streamerId": "$streamerId",
+                  "delayHours": 12,
+                  "endDate": null,
+                  "enabled": true
+                }
+                """.trimIndent()
+            )
+        scheduleChanges.setEndPointNow()
+
+        assertDb(scheduleChanges)
+            .hasNumberOfChanges(1)
+            .change().isModification
+            .rowAtEndPoint()
+            .value("delay_hours").isEqualTo(12)
+    }
+
+    @Test
+    fun `get scan schedule`(@Autowired client: WebTestClient) {
+        val streamerId = "41745269"
+        val session = createOAuthSessionWithDefaultUser(streamerId)
+
+
+        client.get()
+            .uri("/api/scans/schedule")
+            .cookie("SESSION", session.id)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody().json(
+                """
+                {
+                  "streamerId": "$streamerId",
+                  "delayHours": 3,
+                  "createdAt": "2023-08-28T03:25:42Z",
+                  "endDate": null,
+                  "enabled": true
+                }
+                """.trimIndent()
+            )
     }
 
     private fun ReactiveOAuth2AuthorizedClientService.authorizeMockClient(
@@ -186,6 +286,20 @@ class FollowersScannerApplicationTests {
                 )
             ), TestingAuthenticationToken(user, null)
         ).block()
+    }
+
+    private fun createOAuthSessionWithDefaultUser(streamerId: String): WebSession {
+        val user = DefaultOidcUser(
+            listOf(),
+            OidcIdToken(
+                "token",
+                Instant.parse("2023-08-06T19:49:00Z"),
+                Instant.parse("2023-08-06T19:50:00Z"),
+                mapOf(IdTokenClaimNames.SUB to streamerId)
+            )
+        )
+        val session = createOAuthSession(user)
+        return session
     }
 
     private fun createOAuthSession(user: OAuth2User): WebSession = createWebSession { session ->
