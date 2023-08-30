@@ -41,3 +41,15 @@ data class FollowerScanSchedule(
     val endDate: Instant?,
     val enabled: Boolean = true
 )
+
+data class FollowerScanScheduleTask(
+    @Id
+    val id: Long? = null,
+    val streamerId: String,
+    val scheduledAt: Instant,
+    val status: Status = Status.NEW
+) {
+    enum class Status {
+        NEW, COMPLETED
+    }
+}

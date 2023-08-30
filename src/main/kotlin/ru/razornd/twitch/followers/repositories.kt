@@ -55,7 +55,7 @@ interface FollowerUpsert {
 
 }
 
-@Suppress("unused")
+
 class FollowerUpsertImpl(private val operations: FluentR2dbcOperations) : FollowerUpsert {
     override suspend fun insertOrUpdate(follower: Follower) {
         val query = Query.query(
@@ -80,11 +80,20 @@ class FollowerUpsertImpl(private val operations: FluentR2dbcOperations) : Follow
 interface FollowerScanScheduleRepository : Repository<FollowerScanSchedule, String>,
     InsertUpdateOperation<FollowerScanSchedule> {
 
+    @Suppress("unused")
     fun findAllByEnabledIsTrue(): Flow<FollowerScanSchedule>
 
     suspend fun findByStreamerId(streamerId: String): FollowerScanSchedule?
 
     suspend fun deleteByStreamerId(streamerId: String)
+}
+
+interface FollowerScanScheduledTaskRepository : Repository<FollowerScanScheduleTask, Long> {
+
+    fun findAllByStreamerId(streamerId: String): Flow<FollowerScanScheduleTask>
+
+    suspend fun save(task: FollowerScanScheduleTask): FollowerScanScheduleTask
+
 }
 
 interface InsertUpdateOperation<T> {

@@ -133,3 +133,11 @@ INSERT INTO follower_scan_schedule (streamer_id, delay_hours, created_at, end_da
 VALUES ('166583', 6, '2023-08-28T22:21:00Z'::timestamptz, NULL, TRUE),
        ('41745269', 3, '2023-08-28T03:25:42Z'::timestamptz, NULL, TRUE),
        ('8522738', 12, '2023-08-28T09:01:45Z'::timestamptz, '2024-08-28T09:01:45Z'::timestamptz, FALSE);
+
+INSERT INTO follower_scan_schedule_task (id, streamer_id, scheduled_at, status)
+VALUES (9747338278, '735806', '1987-04-25T04:03:42Z'::timestamptz, 'NEW'),
+       (9747338279, '6473513', '2022-12-02T17:12:42Z'::timestamptz, 'COMPLETED'),
+       (9747338280, '6473513', '2022-12-03T17:12:42Z'::timestamptz, 'COMPLETED'),
+       (9747338281, '6473513', '2022-12-04T17:12:42Z'::timestamptz, 'COMPLETED'),
+       (9747338282, '6473513', '2022-12-05T17:12:42Z'::timestamptz, 'COMPLETED'),
+       (9747338283, '6473513', '2022-12-06T17:12:42Z'::timestamptz, 'NEW');

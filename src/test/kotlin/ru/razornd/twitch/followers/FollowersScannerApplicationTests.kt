@@ -75,6 +75,8 @@ class FollowersScannerApplicationTests {
 
     private val scheduleChanges = Changes(Table(source, "follower_scan_schedule"))
 
+    private val scheduleTaskChanges = Changes(Table(source, "follower_scan_schedule_task"))
+
     private val clientRegistration = mockk<ClientRegistration>(relaxed = true) {
         every { registrationId } returns "twitch"
     }
@@ -168,33 +170,33 @@ class FollowersScannerApplicationTests {
         val streamerId = "88049"
         val session = createOAuthSessionWithDefaultUser(streamerId)
 
-        scheduleChanges.setStartPointNow()
-        client.post()
-            .uri("/api/scans/schedule")
-            .cookie("XSRF-TOKEN", XSRF)
-            .cookie("SESSION", session.id)
-            .header("X-XSRF-TOKEN", SALT_XSRF)
-            .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(
-                """
-                {
-                  "delayHours": 12
-                }
-                """.trimIndent()
-            )
-            .exchange()
-            .expectStatus().isCreated
-            .expectBody().json(
-                """
-                {
-                  "streamerId": "$streamerId",
-                  "delayHours": 12,
-                  "endDate": null,
-                  "enabled": true
-                }
-                """.trimIndent()
-            )
-        scheduleChanges.setEndPointNow()
+        listOf(scheduleChanges, scheduleTaskChanges).captureChanges {
+            client.post()
+                .uri("/api/scans/schedule")
+                .cookie("XSRF-TOKEN", XSRF)
+                .cookie("SESSION", session.id)
+                .header("X-XSRF-TOKEN", SALT_XSRF)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(
+                    """
+                    {
+                      "delayHours": 12
+                    }
+                    """.trimIndent()
+                )
+                .exchange()
+                .expectStatus().isCreated
+                .expectBody().json(
+                    """
+                    {
+                      "streamerId": "$streamerId",
+                      "delayHours": 12,
+                      "endDate": null,
+                      "enabled": true
+                    }
+                    """.trimIndent()
+                )
+        }
 
 
         assertDb(scheduleChanges)
@@ -204,6 +206,13 @@ class FollowersScannerApplicationTests {
             .value("streamer_id").isEqualTo(streamerId)
             .value("delay_hours").isEqualTo(12)
 
+        assertDb(scheduleTaskChanges)
+            .hasNumberOfChanges(1)
+            .change().isCreation
+            .rowAtEndPoint()
+            .value("streamer_id").isEqualTo(streamerId)
+            .value("scheduled_at").isNotNull
+            .value("status").isEqualTo("NEW")
     }
 
     @Test

@@ -25,11 +25,9 @@ import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
-import ru.razornd.twitch.followers.CreateFollowerScanSchedule
-import ru.razornd.twitch.followers.FollowerScanSchedule
-import ru.razornd.twitch.followers.FollowerScanScheduleRepository
-import ru.razornd.twitch.followers.UpdateFollowerScanSchedule
+import ru.razornd.twitch.followers.*
 import java.time.Clock
+import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
 
@@ -37,13 +35,17 @@ class FollowerScanScheduleServiceTest {
 
     private val currentTime = Instant.parse("2023-03-06T17:04:24Z")
 
-    private val repository: FollowerScanScheduleRepository = mockk {
+    private val scheduleRepository: FollowerScanScheduleRepository = mockk {
         coEvery { insert(any()) } answers { firstArg() }
         coEvery { update(any()) } answers { firstArg() }
         coEvery { deleteByStreamerId(any()) } returns Unit
     }
 
-    private val service = FollowerScanScheduleService(repository).apply {
+    private val taskRepository: FollowerScanScheduledTaskRepository = mockk {
+        coEvery { save(any()) } answers { firstArg() }
+    }
+
+    private val service = FollowerScanScheduleService(scheduleRepository, taskRepository).apply {
         clock = Clock.fixed(currentTime, ZoneId.systemDefault())
     }
 
@@ -57,7 +59,7 @@ class FollowerScanScheduleServiceTest {
             null
         )
 
-        coEvery { repository.findByStreamerId(streamerId) } returns expected
+        coEvery { scheduleRepository.findByStreamerId(streamerId) } returns expected
 
         val actual = runBlocking { service.getScanSchedule(streamerId) }
 
@@ -68,7 +70,7 @@ class FollowerScanScheduleServiceTest {
     fun `getScanSchedule not exists`() {
         val streamerId = "97286"
 
-        coEvery { repository.findByStreamerId(streamerId) } returns null
+        coEvery { scheduleRepository.findByStreamerId(streamerId) } returns null
 
         assertThatThrownBy { runBlocking { service.getScanSchedule(streamerId) } }
             .isExactlyInstanceOf(FollowerScanScheduleNotExistsException::class.java)
@@ -92,7 +94,15 @@ class FollowerScanScheduleServiceTest {
             .usingRecursiveComparison()
             .isEqualTo(expected)
 
-        coVerify { repository.insert(expected) }
+        coVerify { scheduleRepository.insert(expected) }
+        coVerify {
+            taskRepository.save(
+                FollowerScanScheduleTask(
+                    streamerId = streamerId,
+                    scheduledAt = currentTime + expected.delayDuration
+                )
+            )
+        }
     }
 
     @Test
@@ -112,7 +122,7 @@ class FollowerScanScheduleServiceTest {
             enabled = updateDto.enabled!!
         )
 
-        coEvery { repository.findByStreamerId(streamerId) } returns exists
+        coEvery { scheduleRepository.findByStreamerId(streamerId) } returns exists
 
 
         val actual = runBlocking { service.updateScanSchedule(streamerId, updateDto) }
@@ -122,7 +132,7 @@ class FollowerScanScheduleServiceTest {
             .usingRecursiveComparison()
             .isEqualTo(expected)
 
-        coVerify { repository.update(expected) }
+        coVerify { scheduleRepository.update(expected) }
     }
 
     @ParameterizedTest
@@ -151,7 +161,7 @@ class FollowerScanScheduleServiceTest {
             enabled = enabled ?: exists.enabled
         )
 
-        coEvery { repository.findByStreamerId(streamerId) } returns exists
+        coEvery { scheduleRepository.findByStreamerId(streamerId) } returns exists
 
 
         val actual = runBlocking {
@@ -163,14 +173,14 @@ class FollowerScanScheduleServiceTest {
             .usingRecursiveComparison()
             .isEqualTo(expected)
 
-        coVerify { repository.update(expected) }
+        coVerify { scheduleRepository.update(expected) }
     }
 
     @Test
     fun `updateScanSchedule not exists`() {
         val streamerId = "90172"
 
-        coEvery { repository.findByStreamerId(streamerId) } returns null
+        coEvery { scheduleRepository.findByStreamerId(streamerId) } returns null
 
         assertThatThrownBy {
             runBlocking {
@@ -186,6 +196,8 @@ class FollowerScanScheduleServiceTest {
 
         runBlocking { service.deleteScanSchedule(streamerId) }
 
-        coVerify { repository.deleteByStreamerId(streamerId) }
+        coVerify { scheduleRepository.deleteByStreamerId(streamerId) }
     }
+
+    private val FollowerScanSchedule.delayDuration get() = Duration.ofHours(delayHours.toLong())
 }
