@@ -19,6 +19,7 @@ package ru.razornd.twitch.followers.service
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.runBlocking
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
@@ -197,6 +198,116 @@ class FollowerScanScheduleServiceTest {
         runBlocking { service.deleteScanSchedule(streamerId) }
 
         coVerify { scheduleRepository.deleteByStreamerId(streamerId) }
+    }
+
+    @Test
+    fun tryRunNextSchedule() {
+        val callback = mockk<(FollowerScanScheduleTask) -> Unit>(relaxed = true)
+        val streamerId = "588435838"
+        val expected = FollowerScanScheduleTask(
+            id = 281816,
+            streamerId = streamerId,
+            scheduledAt = Instant.parse("1975-05-16T21:11:44Z"),
+            status = FollowerScanScheduleTask.Status.NEW
+        )
+        val schedule = FollowerScanSchedule(
+            streamerId = streamerId,
+            delayHours = 6,
+            createdAt = Instant.parse("1996-04-19T02:15:08Z"),
+            endDate = null
+        )
+
+        coEvery { taskRepository.findNextNewTask(currentTime) } returns expected
+        coEvery { scheduleRepository.findByStreamerId(streamerId) } returns schedule
+
+        val actual = runBlocking { service.tryRunNextSchedule(callback) }
+
+        assertThat(actual).describedAs("response").isTrue()
+
+        verify { callback(expected) }
+        coVerify { taskRepository.save(expected.copy(status = FollowerScanScheduleTask.Status.COMPLETED)) }
+        coVerify {
+            taskRepository.save(
+                expected.copy(
+                    id = null,
+                    scheduledAt = currentTime + Duration.ofHours(schedule.delayHours.toLong())
+                )
+            )
+        }
+    }
+
+    @Test
+    fun `tryRunNextSchedule task not found`() {
+        val callback = mockk<(FollowerScanScheduleTask) -> Unit>(relaxed = true)
+
+        coEvery { taskRepository.findNextNewTask(currentTime) } returns null
+
+        val actual = runBlocking { service.tryRunNextSchedule(callback) }
+
+        assertThat(actual).describedAs("response").isFalse()
+    }
+
+    @Test
+    fun `tryRunNextSchedule schedule not exists`() {
+        val streamerId = "576410"
+        val task = FollowerScanScheduleTask(
+            id = 8481482,
+            streamerId = streamerId,
+            scheduledAt = Instant.parse("1975-05-16T21:11:44Z"),
+            status = FollowerScanScheduleTask.Status.NEW
+        )
+
+        coEvery { taskRepository.findNextNewTask(any()) } returns task
+        coEvery { scheduleRepository.findByStreamerId(streamerId) } returns null
+
+        runBlocking { service.tryRunNextSchedule { } }
+        coVerify(exactly = 1) { taskRepository.save(any()) }
+    }
+
+    @Test
+    fun `tryRunNextSchedule schedule not enabled`() {
+        val streamerId = "576410"
+        val task = FollowerScanScheduleTask(
+            id = 8481482,
+            streamerId = streamerId,
+            scheduledAt = Instant.parse("1975-05-16T21:11:44Z"),
+            status = FollowerScanScheduleTask.Status.NEW
+        )
+
+        coEvery { taskRepository.findNextNewTask(any()) } returns task
+        coEvery { scheduleRepository.findByStreamerId(streamerId) } returns FollowerScanSchedule(
+            streamerId = streamerId,
+            delayHours = 12,
+            createdAt = Instant.parse("2003-07-23T02:45:50Z"),
+            endDate = null,
+            enabled = false
+        )
+
+        runBlocking { service.tryRunNextSchedule { } }
+        coVerify(exactly = 1) { taskRepository.save(any()) }
+    }
+
+    @Test
+    fun `tryRunNextSchedule schedule not active`() {
+        val streamerId = "576410"
+        val task = FollowerScanScheduleTask(
+            id = 8481482,
+            streamerId = streamerId,
+            scheduledAt = Instant.parse("1975-05-16T21:11:44Z"),
+            status = FollowerScanScheduleTask.Status.NEW
+        )
+
+        coEvery { taskRepository.findNextNewTask(any()) } returns task
+        coEvery { scheduleRepository.findByStreamerId(streamerId) } returns FollowerScanSchedule(
+            streamerId = streamerId,
+            delayHours = 12,
+            createdAt = Instant.parse("2003-07-23T02:45:50Z"),
+            endDate = currentTime - Duration.ofDays(3),
+            enabled = true
+        )
+
+        runBlocking { service.tryRunNextSchedule { } }
+        coVerify(exactly = 1) { taskRepository.save(any()) }
     }
 
     private val FollowerScanSchedule.delayDuration get() = Duration.ofHours(delayHours.toLong())

@@ -27,6 +27,7 @@ import org.assertj.db.type.Changes
 import org.assertj.db.type.Source
 import org.assertj.db.type.Table
 import org.junit.jupiter.api.AfterAll
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -57,7 +58,10 @@ import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import org.testcontainers.utility.DockerImageName
+import ru.razornd.twitch.followers.service.FollowerScanScheduleService
+import java.time.Clock
 import java.time.Instant
+import java.time.ZoneId
 import org.assertj.db.api.Assertions.assertThat as assertDb
 
 private const val XSRF = "6c436860-17b5-4e07-987e-b7bb2eef159b"
@@ -83,6 +87,11 @@ class FollowersScannerApplicationTests {
 
     @Autowired
     lateinit var sessionManager: WebSessionManager
+
+    @BeforeEach
+    fun setUp(@Autowired scheduleService: FollowerScanScheduleService) {
+        scheduleService.clock = Clock.fixed(Instant.parse("2020-01-01T12:00:00Z"), ZoneId.systemDefault())
+    }
 
     @Test
     fun `scan followers`(

@@ -26,6 +26,8 @@ import org.springframework.data.relational.core.query.Criteria
 import org.springframework.data.relational.core.query.Query
 import org.springframework.data.relational.core.query.Update
 import org.springframework.data.repository.Repository
+import java.time.Instant
+import org.springframework.data.r2dbc.repository.Query as RawQuery
 
 interface ScanRepository : Repository<FollowerScan, Any> {
     fun findByStreamerIdOrderByScanNumberDesc(
@@ -91,6 +93,18 @@ interface FollowerScanScheduleRepository : Repository<FollowerScanSchedule, Stri
 interface FollowerScanScheduledTaskRepository : Repository<FollowerScanScheduleTask, Long> {
 
     fun findAllByStreamerId(streamerId: String): Flow<FollowerScanScheduleTask>
+
+
+    @RawQuery(
+        """
+        SELECT id, streamer_id, scheduled_at, status
+        FROM follower_scan_schedule_task
+        WHERE scheduled_at < :currentTime
+        AND status = 'NEW'
+        LIMIT 1 FOR UPDATE SKIP LOCKED
+        """
+    )
+    suspend fun findNextNewTask(currentTime: Instant): FollowerScanScheduleTask?
 
     suspend fun save(task: FollowerScanScheduleTask): FollowerScanScheduleTask
 

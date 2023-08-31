@@ -17,35 +17,37 @@ package ru.razornd.twitch.followers.service
 
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.bind.annotation.ResponseStatus
 import ru.razornd.twitch.followers.*
+import ru.razornd.twitch.followers.FollowerScanScheduleTask.Status
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
 
 @Service
-class FollowerScanScheduleService(
+open class FollowerScanScheduleService(
     private val scheduleRepository: FollowerScanScheduleRepository,
     private val taskRepository: FollowerScanScheduledTaskRepository
 ) {
     var clock: Clock = Clock.systemUTC()
 
     @Throws(FollowerScanScheduleNotExistsException::class)
-    suspend fun getScanSchedule(streamerId: String): FollowerScanSchedule {
+    open suspend fun getScanSchedule(streamerId: String): FollowerScanSchedule {
         return scheduleRepository.findByStreamerId(streamerId) ?: scheduleNotExists(streamerId)
     }
 
     @Throws(FollowerScanScheduleAlreadyExistsException::class)
-    suspend fun createScanSchedule(
+    open suspend fun createScanSchedule(
         streamerId: String,
         createDto: CreateFollowerScanSchedule
     ): FollowerScanSchedule {
         return scheduleRepository.insert(FollowerScanSchedule(streamerId, createDto))
-            .also { taskRepository.save(it.createFirstTask()) }
+            .also { taskRepository.save(it.createTask()) }
     }
 
     @Throws(FollowerScanScheduleNotExistsException::class)
-    suspend fun updateScanSchedule(
+    open suspend fun updateScanSchedule(
         streamerId: String,
         updateDto: UpdateFollowerScanSchedule
     ): FollowerScanSchedule {
@@ -56,8 +58,24 @@ class FollowerScanScheduleService(
         return scheduleRepository.update(updated)
     }
 
-    suspend fun deleteScanSchedule(streamerId: String) {
+    open suspend fun deleteScanSchedule(streamerId: String) {
         scheduleRepository.deleteByStreamerId(streamerId)
+    }
+
+    @Transactional
+    open suspend fun tryRunNextSchedule(consumer: suspend (FollowerScanScheduleTask) -> Unit): Boolean {
+        val task = taskRepository.findNextNewTask(clock.instant()) ?: return false
+
+        consumer(task)
+
+        taskRepository.save(task.complete())
+
+        scheduleRepository.findByStreamerId(task.streamerId)
+            ?.takeIf { it.enabled && it.isActual }
+            ?.let { taskRepository.save(it.createTask()) }
+
+
+        return true
     }
 
     private fun scheduleNotExists(streamerId: String): Nothing {
@@ -80,12 +98,16 @@ class FollowerScanScheduleService(
         createDto.endDate
     )
 
-    private fun FollowerScanSchedule.createFirstTask() = FollowerScanScheduleTask(
+    private fun FollowerScanSchedule.createTask() = FollowerScanScheduleTask(
         streamerId = streamerId,
         scheduledAt = clock.instant() + delayDuration
     )
 
     private val FollowerScanSchedule.delayDuration: Duration get() = Duration.ofHours(delayHours.toLong())
+
+    private val FollowerScanSchedule.isActual get() = endDate == null || clock.instant().isBefore(endDate)
+
+    private fun FollowerScanScheduleTask.complete() = copy(status = Status.COMPLETED)
 }
 
 @ResponseStatus(HttpStatus.NOT_FOUND)

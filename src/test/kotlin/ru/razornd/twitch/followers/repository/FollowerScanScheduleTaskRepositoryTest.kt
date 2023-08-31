@@ -75,7 +75,7 @@ class FollowerScanScheduleTaskRepositoryTest(@Autowired val repository: Follower
         val task = FollowerScanScheduleTask(
             id = 9747338278L,
             streamerId = "735806",
-            scheduledAt = Instant.parse("1987-04-25T04:03:42Z"),
+            scheduledAt = Instant.parse("2024-04-25T04:03:42Z"),
             status = Status.COMPLETED
         )
 
@@ -109,6 +109,27 @@ class FollowerScanScheduleTaskRepositoryTest(@Autowired val repository: Follower
                     status = if (it != 4L) Status.COMPLETED else Status.NEW
                 )
             })
+    }
+
+    @Test
+    fun findNextNewTask() {
+        val currentTime = Instant.parse("2020-03-30T12:00:00Z")
+
+        val actual = runBlocking { repository.findNextNewTask(currentTime) }
+
+
+        Thread {
+            val parallel = runBlocking {
+                repository.findNextNewTask(currentTime)
+            }
+
+            assertThat(parallel).describedAs("parallel request").isNull()
+        }.join()
+
+        assertThat(actual)
+            .describedAs("next task")
+            .usingRecursiveComparison()
+            .isEqualTo(FollowerScanScheduleTask(9747338285, "26426", Instant.parse("2020-03-30T06:44:32Z"), Status.NEW))
     }
 
     companion object {

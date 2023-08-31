@@ -20,7 +20,6 @@ import com.ninjasquad.springmockk.MockkBean
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
-import kotlinx.coroutines.reactor.asCoroutineContext
 import kotlinx.coroutines.runBlocking
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
@@ -42,9 +41,7 @@ import org.springframework.security.oauth2.core.AuthorizationGrantType
 import org.springframework.test.context.ContextConfiguration
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
-import org.springframework.web.server.ServerWebExchange
 import reactor.kotlin.core.publisher.toMono
-import reactor.util.context.Context
 import ru.razornd.twitch.followers.Follower
 import ru.razornd.twitch.followers.FollowerRepository
 import ru.razornd.twitch.followers.FollowerScan
@@ -109,7 +106,7 @@ class FollowerScannerOperatorTest {
         )
 
         val webExchange = MockServerWebExchange.from(MockServerHttpRequest.get("/"))
-        runBlocking(Context.of(ServerWebExchange::class.java, webExchange).asCoroutineContext()) {
+        runBlocking {
             scannerOperator.scanAndSave(followerScan)
         }
 
