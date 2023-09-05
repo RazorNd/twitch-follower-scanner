@@ -316,8 +316,7 @@ class FollowersScannerApplicationTests {
                 mapOf(IdTokenClaimNames.SUB to streamerId)
             )
         )
-        val session = createOAuthSession(user)
-        return session
+        return createOAuthSession(user)
     }
 
     private fun createOAuthSession(user: OAuth2User): WebSession = createWebSession { session ->

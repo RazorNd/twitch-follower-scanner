@@ -16,16 +16,20 @@
 
 package ru.razornd.twitch.followers.repository
 
+import io.r2dbc.spi.ConnectionFactory
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.db.type.Changes
 import org.assertj.db.type.Source
 import org.assertj.db.type.Table
+import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.data.r2dbc.DataR2dbcTest
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection
+import org.springframework.core.io.ClassPathResource
+import org.springframework.r2dbc.connection.init.ResourceDatabasePopulator
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
@@ -137,5 +141,13 @@ class FollowerScanScheduleTaskRepositoryTest(@Autowired val repository: Follower
         @Container
         @ServiceConnection
         val postgres = PostgreSQLContainer(DockerImageName.parse("postgres:15-alpine"))
+
+        @JvmStatic
+        @BeforeAll
+        fun beforeAll(@Autowired connection: ConnectionFactory) {
+            ResourceDatabasePopulator(ClassPathResource("/follower_scan_schedule_task.sql"))
+                .populate(connection)
+                .block()
+        }
     }
 }
