@@ -22,11 +22,16 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.autoconfigure.restdocs.AutoConfigureRestDocs
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
 import org.springframework.context.annotation.Import
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
+import org.springframework.restdocs.headers.HeaderDocumentation.headerWithName
+import org.springframework.restdocs.headers.HeaderDocumentation.requestHeaders
+import org.springframework.restdocs.payload.PayloadDocumentation.*
+import org.springframework.restdocs.webtestclient.WebTestClientRestDocumentation.document
 import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.*
 import org.springframework.test.web.reactive.server.WebTestClient
 import ru.razornd.twitch.followers.CreateFollowerScanSchedule
@@ -38,12 +43,23 @@ import ru.razornd.twitch.followers.service.FollowerScanScheduleNotExistsExceptio
 import ru.razornd.twitch.followers.service.FollowerScanScheduleService
 import java.time.Instant
 
-@Import(SecurityConfiguration::class)
+@AutoConfigureRestDocs
+@Import(SecurityConfiguration::class, RestDocsConfiguration::class)
 @WebFluxTest(controllers = [ScanLaunchScheduleController::class])
 class ScanLaunchScheduleControllerTest(@Autowired val client: WebTestClient) {
 
     @MockkBean
     lateinit var service: FollowerScanScheduleService
+
+    private val xsrfHeader = headerWithName("X-XSRF-TOKEN").description("XSRF token")
+
+    private val scheduleFields = listOf(
+        fieldWithPath("streamerId").description("ID of the Streamer in Twitch"),
+        fieldWithPath("delayHours").description("Time between scan task launches in hours"),
+        fieldWithPath("createdAt").description("Schedule creation date"),
+        fieldWithPath("endDate").description("Schedule end date"),
+        fieldWithPath("enabled").description("schedule enable flag")
+    )
 
     @Test
     fun `should return schedule`() {
@@ -72,7 +88,7 @@ class ScanLaunchScheduleControllerTest(@Autowired val client: WebTestClient) {
                 }                
                 """.trimIndent(),
                 true
-            )
+            ).consumeWith(document("scans/schedule/get", responseFields(scheduleFields)))
     }
 
     @Test
@@ -116,6 +132,8 @@ class ScanLaunchScheduleControllerTest(@Autowired val client: WebTestClient) {
             .mutateWith(csrf())
             .post()
             .uri("/api/scans/schedule")
+            .header("X-XSRF-TOKEN", "e3ed1f89-70d0-47b9-9770-59756dec192a")
+            .cookie("SESSION", "7f106b5d-a8eb-43fb-8d2d-87ca0f01e496")
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(
                 """
@@ -128,6 +146,14 @@ class ScanLaunchScheduleControllerTest(@Autowired val client: WebTestClient) {
             .exchange()
             .expectStatus().isCreated
             .expectBody().json(response.toJson(), true)
+            .consumeWith(
+                document(
+                    "scans/schedule/create",
+                    requestFields(scheduleFields.filter { it.path in setOf("delayHours", "endDate") }),
+                    requestHeaders(xsrfHeader),
+                    responseFields(scheduleFields)
+                )
+            )
     }
 
     @Test
@@ -182,6 +208,8 @@ class ScanLaunchScheduleControllerTest(@Autowired val client: WebTestClient) {
             .mutateWith(csrf())
             .patch()
             .uri("/api/scans/schedule")
+            .header("X-XSRF-TOKEN", "6e327748-9c1d-45cb-9ccd-ff424b43f494")
+            .cookie("SESSION", "c508d82a-398e-449f-a0d4-735093ca6f41")
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(
                 """
@@ -196,6 +224,14 @@ class ScanLaunchScheduleControllerTest(@Autowired val client: WebTestClient) {
             .expectStatus().isOk
             .expectBody()
             .json(response.toJson(), true)
+            .consumeWith(
+                document(
+                    "scans/schedule/patch",
+                    requestFields(scheduleFields.filter { it.path in setOf("delayHours", "endDate", "enabled") }),
+                    requestHeaders(xsrfHeader),
+                    responseFields(scheduleFields)
+                )
+            )
     }
 
     @Test
@@ -208,8 +244,12 @@ class ScanLaunchScheduleControllerTest(@Autowired val client: WebTestClient) {
             .mutateWith(csrf())
             .delete()
             .uri("/api/scans/schedule")
+            .header("X-XSRF-TOKEN", "54b3be9e-1598-436c-910c-d30409c0e514")
+            .cookie("SESSION", "3efbff43-f14a-40f2-b74e-e4ac93ead8ba")
             .exchange()
             .expectStatus().isNoContent
+            .expectBody()
+            .consumeWith(document("scans/schedule/delete", requestHeaders(xsrfHeader)))
     }
 
     @ParameterizedTest

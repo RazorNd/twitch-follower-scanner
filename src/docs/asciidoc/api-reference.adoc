@@ -37,6 +37,30 @@ Start new follower scan operation for streamer that was link:#auth[authorized] i
 
 operation::scans/create[snippets='http-request,request-headers,response-body,response-fields']
 
+== Create scan schedule
+
+Create schedule of the scan operation for streamer that was link:#auth[authorized] in the application.
+
+operation::scans/schedule/create[snippets='http-request,request-headers,request-fields,response-body,response-fields']
+
+== Get current scan schedule
+
+Get current scan schedule for streamer that was link:#auth[authorized] in the application.
+
+operation::scans/schedule/get[snippets='http-request,response-body,response-fields']
+
+== Update current scan schedule
+
+Update of the current scan schedule operation for streamer that was link:#auth[authorized] in the application.
+
+operation::scans/schedule/patch[snippets='http-request,request-headers,request-fields,response-body,response-fields']
+
+== Delete current scan schedule
+
+Delete of the current scan schedule operation for streamer that was link:#auth[authorized] in the application.
+
+operation::scans/schedule/delete[snippets='http-request,request-headers']
+
 == Get XSRF token
 
 operation::xsrf/get[snippets='http-request,response-body,response-fields']
