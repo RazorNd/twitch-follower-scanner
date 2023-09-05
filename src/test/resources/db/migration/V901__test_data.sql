@@ -128,3 +128,8 @@ VALUES ('482d897d-5de4-43d8-8f26-d6c72545b01a', '11111', 1, 'UserDisplayName', '
        ('913613', '21660', 0, 'marline.leannon', '2023-06-08T21:02:23.734Z'::timestamptz),
        ('913613', '10035', 1, 'joyce.gusikowski', '2022-08-31T11:27:48.222Z'::timestamptz),
        ('913613', '02993', 5, 'foster.wilkinson', '2022-08-27T13:51:59.515Z'::timestamptz);
+
+INSERT INTO follower_scan_schedule (streamer_id, delay_hours, created_at, end_date, enabled)
+VALUES ('166583', 6, '2023-08-28T22:21:00Z'::timestamptz, NULL, TRUE),
+       ('41745269', 3, '2023-08-28T03:25:42Z'::timestamptz, NULL, TRUE),
+       ('8522738', 12, '2023-08-28T09:01:45Z'::timestamptz, '2024-08-28T09:01:45Z'::timestamptz, FALSE);

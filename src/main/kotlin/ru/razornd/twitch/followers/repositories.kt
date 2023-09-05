@@ -19,12 +19,15 @@
 package ru.razornd.twitch.followers
 
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.reactor.awaitSingle
 import org.springframework.data.domain.Pageable
 import org.springframework.data.r2dbc.core.*
 import org.springframework.data.relational.core.query.Criteria
 import org.springframework.data.relational.core.query.Query
 import org.springframework.data.relational.core.query.Update
 import org.springframework.data.repository.Repository
+import java.time.Instant
+import org.springframework.data.r2dbc.repository.Query as RawQuery
 
 interface ScanRepository : Repository<FollowerScan, Any> {
     fun findByStreamerIdOrderByScanNumberDesc(
@@ -54,7 +57,7 @@ interface FollowerUpsert {
 
 }
 
-@Suppress("unused")
+
 class FollowerUpsertImpl(private val operations: FluentR2dbcOperations) : FollowerUpsert {
     override suspend fun insertOrUpdate(follower: Follower) {
         val query = Query.query(
@@ -75,3 +78,49 @@ class FollowerUpsertImpl(private val operations: FluentR2dbcOperations) : Follow
     }
 
 }
+
+interface FollowerScanScheduleRepository : Repository<FollowerScanSchedule, String>,
+    InsertUpdateOperation<FollowerScanSchedule> {
+
+    @Suppress("unused")
+    fun findAllByEnabledIsTrue(): Flow<FollowerScanSchedule>
+
+    suspend fun findByStreamerId(streamerId: String): FollowerScanSchedule?
+
+    suspend fun deleteByStreamerId(streamerId: String)
+}
+
+interface FollowerScanScheduledTaskRepository : Repository<FollowerScanScheduleTask, Long> {
+
+    fun findAllByStreamerId(streamerId: String): Flow<FollowerScanScheduleTask>
+
+
+    @RawQuery(
+        """
+        SELECT id, streamer_id, scheduled_at, status
+        FROM follower_scan_schedule_task
+        WHERE scheduled_at < :currentTime
+        AND status = 'NEW'
+        LIMIT 1 FOR UPDATE SKIP LOCKED
+        """
+    )
+    suspend fun findNextNewTask(currentTime: Instant): FollowerScanScheduleTask?
+
+    suspend fun save(task: FollowerScanScheduleTask): FollowerScanScheduleTask
+
+}
+
+interface InsertUpdateOperation<T> {
+    suspend fun insert(model: T): T
+    suspend fun update(schedule: T): T
+
+}
+
+class InsertUpdateOperationImpl<T : Any>(private val operations: R2dbcEntityOperations) : InsertUpdateOperation<T> {
+
+    override suspend fun insert(model: T): T = operations.insert(model).awaitSingle()
+
+    override suspend fun update(schedule: T): T = operations.update(schedule).awaitSingle()
+
+}
+

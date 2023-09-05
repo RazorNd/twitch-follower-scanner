@@ -14,30 +14,11 @@
  * limitations under the License.
  */
 
-package ru.razornd.twitch.followers
+package ru.razornd.twitch.followers.configuration
 
-import java.time.Instant
+import org.springframework.context.annotation.Configuration
+import org.springframework.scheduling.annotation.EnableScheduling
 
-data class FollowerDto(
-    val unfollowed: Boolean,
-    val userId: String,
-    val userName: String,
-    val followedAt: Instant
-)
-
-data class UserInfo(
-    val id: String,
-    val name: String,
-    val picture: String
-)
-
-data class CreateFollowerScanSchedule(
-    val delayHours: Int,
-    val endDate: Instant?
-)
-
-data class UpdateFollowerScanSchedule(
-    val delayHours: Int?,
-    val endDate: Instant?,
-    val enabled: Boolean?
-)
+@Configuration
+@EnableScheduling
+open class ScheduledTaskConfiguration

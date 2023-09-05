@@ -21,9 +21,11 @@ import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.security.oauth2.client.AuthorizedClientServiceReactiveOAuth2AuthorizedClientManager
+import org.springframework.security.oauth2.client.ReactiveOAuth2AuthorizedClientManager
+import org.springframework.security.oauth2.client.ReactiveOAuth2AuthorizedClientService
 import org.springframework.security.oauth2.client.registration.ReactiveClientRegistrationRepository
 import org.springframework.security.oauth2.client.web.reactive.function.client.ServerOAuth2AuthorizedClientExchangeFilterFunction
-import org.springframework.security.oauth2.client.web.server.ServerOAuth2AuthorizedClientRepository
 import org.springframework.web.reactive.function.client.WebClient
 
 @Qualifier
@@ -42,14 +44,24 @@ open class TwitchWebClientConfiguration internal constructor(private val propert
     @TwitchClient
     open fun twitchWebClient(
         builder: WebClient.Builder,
+        authorizedClientManager: ReactiveOAuth2AuthorizedClientManager,
         registrationRepository: ReactiveClientRegistrationRepository,
-        clientRepository: ServerOAuth2AuthorizedClientRepository
     ): WebClient {
+        val clientRegistration = registrationRepository.findByRegistrationId("twitch").block()
         return builder.baseUrl(properties.baseUrl)
-            .filter(ServerOAuth2AuthorizedClientExchangeFilterFunction(registrationRepository, clientRepository).also {
+            .filter(ServerOAuth2AuthorizedClientExchangeFilterFunction(authorizedClientManager).also {
                 it.setDefaultClientRegistrationId("twitch")
             })
-            .defaultHeader("Client-Id", registrationRepository.findByRegistrationId("twitch").block()?.clientId)
+            .defaultHeader("Client-Id", clientRegistration?.clientId)
             .build()
     }
+
+    @Bean
+    open fun oAuth2AuthorizedClientManager(
+        registrationRepository: ReactiveClientRegistrationRepository,
+        authorizedClientService: ReactiveOAuth2AuthorizedClientService
+    ) = AuthorizedClientServiceReactiveOAuth2AuthorizedClientManager(
+        registrationRepository,
+        authorizedClientService
+    )
 }

@@ -14,30 +14,11 @@
  * limitations under the License.
  */
 
-package ru.razornd.twitch.followers
-
-import java.time.Instant
-
-data class FollowerDto(
-    val unfollowed: Boolean,
-    val userId: String,
-    val userName: String,
-    val followedAt: Instant
-)
-
-data class UserInfo(
-    val id: String,
-    val name: String,
-    val picture: String
-)
-
-data class CreateFollowerScanSchedule(
-    val delayHours: Int,
-    val endDate: Instant?
-)
-
-data class UpdateFollowerScanSchedule(
-    val delayHours: Int?,
-    val endDate: Instant?,
-    val enabled: Boolean?
-)
+CREATE TABLE follower_scan_schedule
+(
+    streamer_id varchar(50) PRIMARY KEY,
+    delay_hours integer   NOT NULL,
+    created_at  timestamp NOT NULL,
+    end_date    timestamp DEFAULT NULL,
+    enabled     boolean   NOT NULL
+);
