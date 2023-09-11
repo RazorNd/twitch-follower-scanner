@@ -16,6 +16,7 @@ spring:
             provider: twitch
             client-id: ${twitch.client-id}
             client-secret: ${twitch.client-secret}
+            client-authentication-method: client_secret_post
             scope:
               - openid
               - moderator:read:followers

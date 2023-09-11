@@ -27,6 +27,7 @@ repositories {
 
 extra["springmockk"] = "4.0.2"
 extra["assertj-db"] = "2.0.2"
+extra["wiremock"] = "3.0.4"
 val snippetsDir = file("build/generated-snippets")
 
 dependencies {
@@ -51,6 +52,7 @@ dependencies {
     testImplementation("org.assertj:assertj-db:${property("assertj-db")}")
     testImplementation("org.postgresql:postgresql")
     testImplementation("com.squareup.okhttp3:mockwebserver")
+    testImplementation("org.wiremock:wiremock:${property("wiremock")}")
     testImplementation("org.testcontainers:junit-jupiter")
     testImplementation("org.testcontainers:postgresql")
     testImplementation("org.testcontainers:r2dbc")

@@ -23,10 +23,13 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.security.oauth2.client.AuthorizedClientServiceReactiveOAuth2AuthorizedClientManager
 import org.springframework.security.oauth2.client.ReactiveOAuth2AuthorizedClientManager
+import org.springframework.security.oauth2.client.ReactiveOAuth2AuthorizedClientProviderBuilder
 import org.springframework.security.oauth2.client.ReactiveOAuth2AuthorizedClientService
+import org.springframework.security.oauth2.client.endpoint.WebClientReactiveRefreshTokenTokenResponseClient
 import org.springframework.security.oauth2.client.registration.ReactiveClientRegistrationRepository
 import org.springframework.security.oauth2.client.web.reactive.function.client.ServerOAuth2AuthorizedClientExchangeFilterFunction
 import org.springframework.web.reactive.function.client.WebClient
+import ru.razornd.twitch.followers.security.support.OAuth2AccessTokenResponseBodyExtractor
 
 @Qualifier
 @Target(AnnotationTarget.FIELD, AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.FUNCTION)
@@ -59,9 +62,22 @@ open class TwitchWebClientConfiguration internal constructor(private val propert
     @Bean
     open fun oAuth2AuthorizedClientManager(
         registrationRepository: ReactiveClientRegistrationRepository,
-        authorizedClientService: ReactiveOAuth2AuthorizedClientService
+        authorizedClientService: ReactiveOAuth2AuthorizedClientService,
+        refreshTokenClient: WebClientReactiveRefreshTokenTokenResponseClient
     ) = AuthorizedClientServiceReactiveOAuth2AuthorizedClientManager(
         registrationRepository,
         authorizedClientService
-    )
+    ).apply {
+        setAuthorizedClientProvider(
+            ReactiveOAuth2AuthorizedClientProviderBuilder
+                .builder()
+                .refreshToken { it.accessTokenResponseClient(refreshTokenClient) }
+                .build()
+        )
+    }
+
+    @Bean
+    open fun refreshTokenResponseClient() = WebClientReactiveRefreshTokenTokenResponseClient().apply {
+        setBodyExtractor(OAuth2AccessTokenResponseBodyExtractor())
+    }
 }
