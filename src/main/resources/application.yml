@@ -20,11 +20,18 @@ spring:
             scope:
               - openid
               - moderator:read:followers
+  data:
+    redis:
+      repositories:
+        enabled: false
 
 server:
   forward-headers-strategy: native
   error:
     include-message: always
+  reactive:
+    session:
+      timeout: 30d
 
 ---
 spring:

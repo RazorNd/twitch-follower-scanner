@@ -17,14 +17,17 @@
 package ru.razornd.twitch.followers
 
 import org.springframework.data.annotation.Id
+import org.springframework.data.relational.core.mapping.Table
 import java.time.Instant
 
+@Table
 data class FollowerScan(
     val streamerId: String,
     val scanNumber: Int,
     val createdAt: Instant
 )
 
+@Table
 data class Follower(
     val streamerId: String,
     val scanNumber: Int,
@@ -33,6 +36,7 @@ data class Follower(
     val followedAt: Instant
 )
 
+@Table
 data class FollowerScanSchedule(
     @Id
     val streamerId: String,
@@ -42,6 +46,7 @@ data class FollowerScanSchedule(
     val enabled: Boolean = true
 )
 
+@Table
 data class FollowerScanScheduleTask(
     @Id
     val id: Long? = null,

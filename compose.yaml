@@ -6,3 +6,7 @@ services:
     environment:
       POSTGRES_DB: twitch
       POSTGRES_PASSWORD: fftGixPpLAxDGVDmyb4P
+  redis:
+    image: 'redis:7-alpine'
+    ports:
+      - '6379'
