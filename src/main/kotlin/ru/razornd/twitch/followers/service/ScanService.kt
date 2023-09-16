@@ -17,9 +17,12 @@
 package ru.razornd.twitch.followers.service
 
 import kotlinx.coroutines.flow.toList
+import org.springframework.dao.CannotAcquireLockException
+import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Isolation
 import org.springframework.transaction.annotation.Transactional
+import org.springframework.web.bind.annotation.ResponseStatus
 import ru.razornd.twitch.followers.FollowerScan
 import ru.razornd.twitch.followers.ScanRepository
 import java.time.Clock
@@ -37,15 +40,22 @@ open class ScanService(private val repository: ScanRepository, private val opera
 
     @Transactional(isolation = Isolation.REPEATABLE_READ)
     open suspend fun startScan(streamerId: String): FollowerScan {
-        val scan = repository.findTopByStreamerIdOrderByScanNumberDesc(streamerId)?.nextScan()
-            ?: FollowerScan(streamerId)
+        try {
+            val scan = repository.findTopByStreamerIdOrderByScanNumberDesc(streamerId)?.nextScan()
+                ?: FollowerScan(streamerId)
 
-        operator.scanAndSave(scan)
+            operator.scanAndSave(scan)
 
-        return scan.let { repository.save(it) }
+            return scan.let { repository.save(it) }
+        } catch (e: CannotAcquireLockException) {
+            throw ParallelScanTask("Execute parallel scan task for streamerId='$streamerId'", e)
+        }
     }
 
     private fun FollowerScan(streamerId: String) = FollowerScan(streamerId, 1, Instant.now(clock))
 
     private fun FollowerScan.nextScan() = copy(scanNumber = scanNumber + 1, createdAt = Instant.now(clock))
 }
+
+@ResponseStatus(HttpStatus.CONFLICT)
+class ParallelScanTask(message: String, cause: Throwable? = null) : RuntimeException(message, cause)

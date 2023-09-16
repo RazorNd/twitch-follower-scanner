@@ -28,6 +28,7 @@ import org.springframework.boot.test.autoconfigure.restdocs.AutoConfigureRestDoc
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
 import org.springframework.context.annotation.Import
 import org.springframework.http.HttpMethod
+import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.restdocs.headers.HeaderDocumentation.headerWithName
 import org.springframework.restdocs.headers.HeaderDocumentation.requestHeaders
@@ -41,6 +42,7 @@ import org.springframework.security.test.web.reactive.server.SecurityMockServerC
 import org.springframework.test.web.reactive.server.WebTestClient
 import ru.razornd.twitch.followers.FollowerScan
 import ru.razornd.twitch.followers.configuration.SecurityConfiguration
+import ru.razornd.twitch.followers.service.ParallelScanTask
 import ru.razornd.twitch.followers.service.ScanService
 import java.time.Instant
 
@@ -160,5 +162,28 @@ class ScanControllerTest(@Autowired val webClient: WebTestClient) {
             .accept(MediaType.APPLICATION_JSON)
             .exchange()
             .expectStatus().isUnauthorized
+    }
+
+    @Test
+    fun `parallel scan task should return 409 Conflict`() {
+        val message = "Parallel scan"
+        coEvery { scanService.startScan(any()) } throws ParallelScanTask(message)
+
+        webClient.mutateWith(csrf())
+            .mutateWith(mockOidcLogin().idToken { it.subject("1743712921") })
+            .post()
+            .uri("/api/scans")
+            .accept(MediaType.APPLICATION_JSON)
+            .exchange()
+            .expectStatus().isEqualTo(HttpStatus.CONFLICT)
+            .expectBody().json(
+                """
+                {
+                  "status": 409,
+                  "error": "Conflict",
+                  "message": "$message"
+                }
+                """.trimIndent()
+            )
     }
 }

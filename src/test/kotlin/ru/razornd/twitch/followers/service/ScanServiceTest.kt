@@ -22,7 +22,9 @@ import io.mockk.mockk
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test
+import org.springframework.dao.CannotAcquireLockException
 import ru.razornd.twitch.followers.FollowerScan
 import ru.razornd.twitch.followers.ScanRepository
 import java.time.Clock
@@ -71,5 +73,24 @@ class ScanServiceTest {
 
         coVerify { repository.save(expected) }
         coVerify { operator.scanAndSave(expected) }
+    }
+
+    @Test
+    fun `should throw ParallelScanException if can't acquire lock`() {
+        val streamerId = "2700212"
+        val expectedCause = CannotAcquireLockException("could not serialize access due to concurrent update")
+
+        coEvery { repository.findTopByStreamerIdOrderByScanNumberDesc(streamerId) } returns FollowerScan(
+            streamerId,
+            760,
+            Instant.parse("2023-08-28T19:29:22Z")
+        )
+
+        coEvery { operator.scanAndSave(any()) } throws expectedCause
+
+        assertThatThrownBy { runBlocking { service.startScan(streamerId) } }
+            .isExactlyInstanceOf(ParallelScanTask::class.java)
+            .hasMessage("Execute parallel scan task for streamerId='$streamerId'")
+            .hasCause(expectedCause)
     }
 }
