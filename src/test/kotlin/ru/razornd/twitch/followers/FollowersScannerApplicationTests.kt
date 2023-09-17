@@ -54,6 +54,7 @@ import org.springframework.test.web.reactive.server.expectBodyList
 import org.springframework.web.server.WebSession
 import org.springframework.web.server.session.DefaultWebSessionManager
 import org.springframework.web.server.session.WebSessionManager
+import org.testcontainers.containers.GenericContainer
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
@@ -335,6 +336,12 @@ class FollowersScannerApplicationTests {
         @Container
         @ServiceConnection
         val postgres = PostgreSQLContainer(DockerImageName.parse("postgres:15-alpine"))
+
+        @Container
+        @ServiceConnection
+        val redis = GenericContainer(DockerImageName.parse("redis:7-alpine")).apply {
+            addExposedPort(6379)
+        }
 
         val server = MockWebServer()
 
