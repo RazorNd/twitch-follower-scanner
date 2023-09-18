@@ -16,7 +16,6 @@
 
 package ru.razornd.twitch.followers.configuration
 
-import net.minidev.json.JSONObject
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.http.HttpStatus
@@ -50,11 +49,7 @@ open class SecurityConfiguration {
                     DefaultServerOAuth2AuthorizationRequestResolver(registrationRepository).apply {
                         setAuthorizationRequestCustomizer {
                             it.additionalParameters { params ->
-                                params["claims"] = JSONObject(
-                                    mapOf<String, Any>(
-                                        "id_token" to mapOf("picture" to null, "preferred_username" to null)
-                                    )
-                                )
+                                params["claims"] = """{"id_token": {"picture": null, "preferred_username": null}}"""
                             }
                         }
                     }

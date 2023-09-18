@@ -1,0 +1,227 @@
+[
+{
+  "name":"org.springframework.security.authentication.AbstractAuthenticationToken",
+  "allDeclaredFields":true,
+  "queryAllDeclaredMethods":true,
+  "methods":[{"name":"setDetails","parameterTypes":["java.lang.Object"] }]
+},
+{
+  "name":"org.springframework.security.core.AuthenticatedPrincipal",
+  "queryAllDeclaredMethods":true
+},
+{
+  "name":"org.springframework.security.core.Authentication",
+  "queryAllDeclaredMethods":true
+},
+{
+  "name":"org.springframework.security.core.CredentialsContainer",
+  "queryAllDeclaredMethods":true
+},
+{
+  "name":"org.springframework.security.core.GrantedAuthority",
+  "queryAllDeclaredMethods":true
+},
+{
+  "name":"org.springframework.security.core.annotation.AuthenticationPrincipal",
+  "queryAllDeclaredMethods":true
+},
+{
+  "name":"org.springframework.security.core.authority.SimpleGrantedAuthority",
+  "allDeclaredFields":true,
+  "queryAllDeclaredMethods":true,
+  "queryAllDeclaredConstructors":true,
+  "methods":[{"name":"<init>","parameterTypes":["java.lang.String"] }, {"name":"getAuthority","parameterTypes":[] }]
+},
+{
+  "name":"org.springframework.security.core.context.SecurityContext",
+  "queryAllDeclaredMethods":true
+},
+{
+  "name":"org.springframework.security.core.context.SecurityContextImpl",
+  "allDeclaredFields":true,
+  "queryAllDeclaredMethods":true,
+  "queryAllDeclaredConstructors":true,
+  "methods":[{"name":"<init>","parameterTypes":[] }, {"name":"getAuthentication","parameterTypes":[] }, {"name":"setAuthentication","parameterTypes":["org.springframework.security.core.Authentication"] }]
+},
+{
+  "name":"org.springframework.security.jackson2.SimpleGrantedAuthorityMixin",
+  "allDeclaredFields":true,
+  "queryAllDeclaredMethods":true,
+  "queryAllDeclaredConstructors":true
+},
+{
+  "name":"org.springframework.security.jackson2.UnmodifiableListDeserializer",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"org.springframework.security.jackson2.UnmodifiableMapDeserializer",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"org.springframework.security.jackson2.UnmodifiableSetDeserializer",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"org.springframework.security.oauth2.client.AuthorizedClientServiceReactiveOAuth2AuthorizedClientManager",
+  "queryAllDeclaredMethods":true,
+  "methods":[{"name":"authorize","parameterTypes":["org.springframework.security.oauth2.client.OAuth2AuthorizeRequest"] }]
+},
+{
+  "name":"org.springframework.security.oauth2.client.OAuth2AuthorizedClient"
+},
+{
+  "name":"org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken",
+  "allDeclaredFields":true,
+  "queryAllDeclaredMethods":true,
+  "queryAllDeclaredConstructors":true,
+  "methods":[{"name":"<init>","parameterTypes":["org.springframework.security.oauth2.core.user.OAuth2User","java.util.Collection","java.lang.String"] }]
+},
+{
+  "name":"org.springframework.security.oauth2.client.endpoint.WebClientReactiveAuthorizationCodeTokenResponseClient",
+  "queryAllDeclaredMethods":true
+},
+{
+  "name":"org.springframework.security.oauth2.client.endpoint.WebClientReactiveRefreshTokenTokenResponseClient",
+  "queryAllDeclaredMethods":true
+},
+{
+  "name":"org.springframework.security.oauth2.client.jackson2.DefaultOAuth2UserMixin",
+  "allDeclaredFields":true,
+  "queryAllDeclaredMethods":true
+},
+{
+  "name":"org.springframework.security.oauth2.client.jackson2.DefaultOidcUserMixin",
+  "allDeclaredFields":true,
+  "queryAllDeclaredMethods":true,
+  "queryAllDeclaredConstructors":true
+},
+{
+  "name":"org.springframework.security.oauth2.client.jackson2.OAuth2AuthenticationTokenMixin",
+  "allDeclaredFields":true,
+  "queryAllDeclaredMethods":true,
+  "queryAllDeclaredConstructors":true
+},
+{
+  "name":"org.springframework.security.oauth2.client.jackson2.OAuth2AuthorizationRequestDeserializer",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"org.springframework.security.oauth2.client.jackson2.OAuth2AuthorizationRequestMixin",
+  "allDeclaredFields":true,
+  "queryAllDeclaredMethods":true,
+  "queryAllDeclaredConstructors":true
+},
+{
+  "name":"org.springframework.security.oauth2.client.jackson2.OAuth2UserAuthorityMixin",
+  "allDeclaredFields":true,
+  "queryAllDeclaredMethods":true
+},
+{
+  "name":"org.springframework.security.oauth2.client.jackson2.OidcIdTokenMixin",
+  "allDeclaredFields":true,
+  "queryAllDeclaredMethods":true,
+  "queryAllDeclaredConstructors":true
+},
+{
+  "name":"org.springframework.security.oauth2.client.jackson2.OidcUserAuthorityMixin",
+  "allDeclaredFields":true,
+  "queryAllDeclaredMethods":true,
+  "queryAllDeclaredConstructors":true
+},
+{
+  "name":"org.springframework.security.oauth2.client.jackson2.OidcUserInfoMixin",
+  "allDeclaredFields":true,
+  "queryAllDeclaredMethods":true,
+  "queryAllDeclaredConstructors":true
+},
+{
+  "name":"org.springframework.security.oauth2.core.AbstractOAuth2Token",
+  "allDeclaredFields":true,
+  "queryAllDeclaredMethods":true
+},
+{
+  "name":"org.springframework.security.oauth2.core.AuthorizationGrantType",
+  "allDeclaredFields":true,
+  "queryAllDeclaredMethods":true,
+  "queryAllDeclaredConstructors":true,
+  "methods":[{"name":"getValue","parameterTypes":[] }]
+},
+{
+  "name":"org.springframework.security.oauth2.core.ClaimAccessor",
+  "queryAllDeclaredMethods":true
+},
+{
+  "name":"org.springframework.security.oauth2.core.OAuth2AuthenticatedPrincipal",
+  "queryAllDeclaredMethods":true
+},
+{
+  "name":"org.springframework.security.oauth2.core.OAuth2Token",
+  "queryAllDeclaredMethods":true
+},
+{
+  "name":"org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest",
+  "allDeclaredFields":true,
+  "queryAllDeclaredMethods":true,
+  "queryAllDeclaredConstructors":true
+},
+{
+  "name":"org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationResponseType",
+  "allDeclaredFields":true,
+  "queryAllDeclaredMethods":true,
+  "queryAllDeclaredConstructors":true,
+  "methods":[{"name":"getValue","parameterTypes":[] }]
+},
+{
+  "name":"org.springframework.security.oauth2.core.oidc.IdTokenClaimAccessor",
+  "queryAllDeclaredMethods":true
+},
+{
+  "name":"org.springframework.security.oauth2.core.oidc.OidcIdToken",
+  "allDeclaredFields":true,
+  "queryAllDeclaredMethods":true,
+  "queryAllDeclaredConstructors":true,
+  "methods":[{"name":"<init>","parameterTypes":["java.lang.String","java.time.Instant","java.time.Instant","java.util.Map"] }]
+},
+{
+  "name":"org.springframework.security.oauth2.core.oidc.OidcUserInfo",
+  "allDeclaredFields":true,
+  "queryAllDeclaredMethods":true,
+  "queryAllDeclaredConstructors":true
+},
+{
+  "name":"org.springframework.security.oauth2.core.oidc.StandardClaimAccessor",
+  "queryAllDeclaredMethods":true
+},
+{
+  "name":"org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser",
+  "allDeclaredFields":true,
+  "queryAllDeclaredMethods":true,
+  "queryAllDeclaredConstructors":true,
+  "methods":[{"name":"<init>","parameterTypes":["java.util.Collection","org.springframework.security.oauth2.core.oidc.OidcIdToken","org.springframework.security.oauth2.core.oidc.OidcUserInfo","java.lang.String"] }]
+},
+{
+  "name":"org.springframework.security.oauth2.core.oidc.user.OidcUser",
+  "queryAllDeclaredMethods":true
+},
+{
+  "name":"org.springframework.security.oauth2.core.oidc.user.OidcUserAuthority",
+  "allDeclaredFields":true,
+  "queryAllDeclaredMethods":true,
+  "queryAllDeclaredConstructors":true,
+  "methods":[{"name":"<init>","parameterTypes":["java.lang.String","org.springframework.security.oauth2.core.oidc.OidcIdToken","org.springframework.security.oauth2.core.oidc.OidcUserInfo"] }]
+},
+{
+  "name":"org.springframework.security.oauth2.core.user.DefaultOAuth2User",
+  "allDeclaredFields":true,
+  "queryAllDeclaredMethods":true
+},
+{
+  "name":"org.springframework.security.oauth2.core.user.OAuth2User",
+  "queryAllDeclaredMethods":true
+},
+{
+  "name":"org.springframework.security.oauth2.core.user.OAuth2UserAuthority",
+  "allDeclaredFields":true,
+  "queryAllDeclaredMethods":true
+}
+]
