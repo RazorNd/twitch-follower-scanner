@@ -42,7 +42,10 @@ open class SecurityConfiguration {
         registrationRepository: ReactiveClientRegistrationRepository
     ): SecurityWebFilterChain {
         return http {
-            authorizeExchange { authorize(anyExchange, authenticated) }
+            authorizeExchange {
+                authorize("/actuator/**", permitAll)
+                authorize(anyExchange, authenticated)
+            }
             csrf { csrfTokenRepository = CookieServerCsrfTokenRepository() }
             oauth2Login {
                 authorizationRequestResolver =

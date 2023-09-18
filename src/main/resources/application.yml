@@ -33,6 +33,10 @@ server:
     session:
       timeout: 30d
 
+management:
+  endpoints:
+    web.exposure.include: health,prometheus
+
 ---
 spring:
   config:
